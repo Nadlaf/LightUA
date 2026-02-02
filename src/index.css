@@ -1,13 +1,12 @@
-/* src/index.css */
 :root {
-  --primary: #3b82f6;       /* Яскравий синій з кнопки */
-  --primary-hover: #2563eb; /* Темніший синій для ховеру */
-  --bg-page: #eff6ff;       /* Світло-блакитний фон всієї сторінки */
-  --bg-card: #ffffff;       /* Білий фон для карток */
-  --text-main: #1f2937;     /* Темний текст */
-  --text-light: #6b7280;    /* Сірий текст */
-  --border: #e5e7eb;        /* Колір рамок */
-  --radius: 12px;           /* Закруглення кутів */
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --bg-page: #eff6ff;
+  --bg-card: #ffffff;
+  --text-main: #1f2937;
+  --text-light: #6b7280;
+  --border: #e5e7eb;
+  --radius: 12px;
 }
 
 * {
@@ -23,7 +22,6 @@ body {
   min-height: 100vh;
 }
 
-/* Робимо контейнер для центрування контенту */
 .container {
   max-width: 1200px;
   margin: 0 auto;

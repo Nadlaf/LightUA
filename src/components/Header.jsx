@@ -1,18 +1,18 @@
-// src/components/Header.jsx
+//Іконка бліскаукі на іконку
 import React from 'react';
-import { Zap } from 'lucide-react'; // Імпортуємо іконку блискавки
+import { Zap } from 'lucide-react';
 
 const Header = () => {
   return (
     <header className="header">
       <div className="container header-content">
-        {/* Логотип */}
+        {/*Лого*/}
         <div className="logo">
           <Zap className="logo-icon" size={24} color="#f59e0b" fill="#f59e0b" /> {/* Жовта блискавка */}
           <span>СвітлоUA</span>
         </div>
 
-        {/* Навігація */}
+        {/*Нав*/}
         <nav className="nav">
           <a href="#">Про проєкт</a>
           <a href="#">Контакти</a>
@@ -20,7 +20,6 @@ const Header = () => {
         </nav>
       </div>
 
-      {/* Стилі саме для хедера */}
       <style>{`
         .header {
           background-color: var(--bg-card);

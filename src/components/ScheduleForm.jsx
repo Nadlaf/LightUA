@@ -1,29 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Zap } from 'lucide-react';
 
-// Приймаємо функцію onSearch, яку нам передасть App.jsx
+//Підвантаження черги по запросу з форми
 const ScheduleForm = ({ onSearch }) => {
-  const [activeDay, setActiveDay] = useState(0); // 0 - сьогодні, 1 - завтра
+  const [activeDay, setActiveDay] = useState(0);
   const [region, setRegion] = useState('');
   const [group, setGroup] = useState('');
   const [error, setError] = useState('');
 
+  //Додаємо стан для зберігання динамічного списку черг
+  const [availableQueues, setAvailableQueues] = useState([]);
+
+  //Ефект для завантаження черг з файлу при виборі Черкаської області
+  useEffect(() => {
+    if (region === 'cherkasy') {
+      fetch('/schedule_today.json')
+          .then(res => res.json())
+          .then(data => {
+            // Беремо першу доступну дату
+            const dateKey = Object.keys(data)[0];
+            const schedule = data[dateKey]?.schedule;
+
+            if (schedule) {
+              //Отримуємо номери черги та сортуємо їх
+              const queues = Object.keys(schedule).sort();
+              setAvailableQueues(queues);
+            }
+          })
+          .catch(err => {
+            console.error("Не вдалося завантажити список черг:", err);
+            setAvailableQueues([]);
+          });
+    } else {
+      setAvailableQueues([]);
+    }
+  }, [region]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Проста валідація
+
     if (!region) {
       setError('Будь ласка, оберіть область');
       return;
     }
     if (!group) {
-      setError('Вкажіть вашу чергу');
+      setError('Будь ласка, оберіть вашу чергу');
       return;
     }
 
-    setError(''); // Очищаємо помилки
-    
-    // Відправляємо дані нагору в App.jsx
+    setError('');
+
     onSearch({
       region,
       group,
@@ -31,78 +57,91 @@ const ScheduleForm = ({ onSearch }) => {
     });
   };
 
+  //Якщо перевибрали область, то виводимо необхідну чергу
+  const handleRegionChange = (e) => {
+    setRegion(e.target.value);
+    setGroup('');
+  };
+
   return (
-    <div className="card form-card">
-      <div className="card-header">
-        <h2>Графік відключень світла</h2>
-        <Zap size={24} fill="#f59e0b" color="#f59e0b" className="icon-zap" />
-      </div>
+      <div className="card form-card">
+        <div className="card-header">
+          <h2>Графік відключень світла</h2>
+          <Zap size={24} fill="#f59e0b" color="#f59e0b" className="icon-zap" />
+        </div>
 
-      <form className="form" onSubmit={handleSubmit}>
-        {/* Область */}
-        <div className="form-group">
-          <label>Область</label>
-          <div className="select-wrapper">
-            <select 
-              className="form-control"
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-            >
-              <option value="">Оберіть область</option>
-              <option value="kyiv">Київська</option>
-              <option value="lviv">Львівська</option>
-              <option value="dnipro">Дніпропетровська</option>
-              <option value="odesa">Одеська</option>
-            </select>
-            <span className="select-arrow">▼</span>
+        <form className="form" onSubmit={handleSubmit}>
+
+          {/*Селектор областей*/}
+          <div className="form-group">
+            <label>Область</label>
+            <div className="select-wrapper">
+              <select
+                  className="form-control"
+                  value={region}
+                  onChange={handleRegionChange}
+              >
+                <option value="">Оберіть область</option>
+                <option value="cherkasy">Черкаська область</option>
+              </select>
+              <span className="select-arrow">▼</span>
+            </div>
           </div>
-        </div>
 
-        {/* Черга */}
-        <div className="form-group">
-          <label>Черга</label>
-          <input 
-            type="number" 
-            className="form-control" 
-            placeholder="Наприклад: 4" 
-            value={group}
-            onChange={(e) => setGroup(e.target.value)}
-            min="1"
-            max="6"
-          />
-        </div>
+          {/*Список черг*/}
+          <div className="form-group">
+            <label>Черга</label>
+            <div className={`select-wrapper ${!region ? 'disabled' : ''}`}>
+              <select
+                  className="form-control"
+                  value={group}
+                  onChange={(e) => setGroup(e.target.value)}
+                  disabled={!region}
+              >
+                <option value="">
+                  {!region ? 'Спочатку оберіть область' : 'Оберіть чергу'}
+                </option>
 
-        {/* День (перемикач) */}
-        <div className="form-group">
-          <label>День</label>
-          <div className="toggle-group">
-            <button 
-              type="button" 
-              className={`toggle-btn ${activeDay === 0 ? 'active' : ''}`}
-              onClick={() => setActiveDay(0)}
-            >
-              Сьогодні
-            </button>
-            <button 
-              type="button" 
-              className={`toggle-btn ${activeDay === 1 ? 'active' : ''}`}
-              onClick={() => setActiveDay(1)}
-            >
-              Завтра
-            </button>
+                {/*Recheck чи є необхідна черга в файлі*/}
+                {availableQueues.map((q) => (
+                    <option key={q} value={q}>
+                      Черга {q}
+                    </option>
+                ))}
+              </select>
+              <span className="select-arrow">▼</span>
+            </div>
           </div>
-        </div>
-        
-        {/* Повідомлення про помилку */}
-        {error && <div className="error-message">{error}</div>}
 
-        {/* Кнопка type="submit" тепер справді відправляє форму */}
-        <button type="submit" className="btn-submit">
-          Показати графік
-        </button>
-      </form>
+          {/*Сьогодні/Завтра селектор*/}
+          <div className="form-group">
+            <label>День</label>
+            <div className="toggle-group">
+              <button
+                  type="button"
+                  className={`toggle-btn ${activeDay === 0 ? 'active' : ''}`}
+                  onClick={() => setActiveDay(0)}
+              >
+                Сьогодні
+              </button>
+              <button
+                  type="button"
+                  className={`toggle-btn ${activeDay === 1 ? 'active' : ''}`}
+                  onClick={() => setActiveDay(1)}
+              >
+                Завтра
+              </button>
+            </div>
+          </div>
 
-      <style>{`
+          {error && <div className="error-message">{error}</div>}
+
+          <button type="submit" className="btn-submit">
+            Показати графік
+          </button>
+        </form>
+
+        <style>{`
         .card {
           background: var(--bg-card);
           border-radius: 24px;
@@ -147,6 +186,7 @@ const ScheduleForm = ({ onSearch }) => {
           background: white;
           outline: none;
           appearance: none;
+          cursor: pointer;
           transition: border-color 0.2s;
         }
 
@@ -154,8 +194,19 @@ const ScheduleForm = ({ onSearch }) => {
           border-color: var(--primary);
         }
 
+        /* Стиль для заблокованого селекта */
+        .form-control:disabled {
+          background-color: #f3f4f6;
+          color: #9ca3af;
+          cursor: not-allowed;
+        }
+
         .select-wrapper {
           position: relative;
+        }
+        
+        .select-wrapper.disabled .select-arrow {
+          opacity: 0.5;
         }
 
         .select-arrow {
@@ -218,7 +269,7 @@ const ScheduleForm = ({ onSearch }) => {
           text-align: center;
         }
       `}</style>
-    </div>
+      </div>
   );
 };
 
