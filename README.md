@@ -4,9 +4,9 @@
 ## Файли та структура:
 `backend/app.py` — головний Flask додаток
   
-`backend/fetcher.py` — фоновий/помічний скрипт для оновлення `schedule\\\_history.json`
+`backend/fetcher.py` — фоновий/помічний скрипт для оновлення `schedule_history.json`, `schedule_today.json` та `schedule_tomorrow.json`
   
-`backend/schedule\\\_history.json` — збережена історія (для прикладу вже заповнена)  
+`backend/schedule_history.json` — збережена історія (для прикладу вже заповнена)  
   
 #Запуск самого сайту
 1. Відкрийте термінал безпосередньо в репозиторії light-ua
