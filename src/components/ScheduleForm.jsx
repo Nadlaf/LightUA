@@ -1,28 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { Zap } from 'lucide-react';
+// Імпортуємо нову функцію перевірки
+import { checkTomorrowAvailability } from '../api/scheduleService';
 
-//Підвантаження черги по запросу з форми
 const ScheduleForm = ({ onSearch }) => {
   const [activeDay, setActiveDay] = useState(0);
   const [region, setRegion] = useState('');
   const [group, setGroup] = useState('');
   const [error, setError] = useState('');
 
-  //Додаємо стан для зберігання динамічного списку черг
   const [availableQueues, setAvailableQueues] = useState([]);
 
-  //Ефект для завантаження черг з файлу при виборі Черкаської області
+  // Стан доступності кнопки "Завтра"
+  const [isTomorrowAvailable, setIsTomorrowAvailable] = useState(false);
+
+  // Перевіряємо доступність завтрашнього дня при завантаженні
+  useEffect(() => {
+    checkTomorrowAvailability().then(available => {
+      setIsTomorrowAvailable(available);
+      // Якщо ми були на вкладці "Завтра", а вона стала недоступною -> перемикаємо на "Сьогодні"
+      if (!available && activeDay === 1) {
+        setActiveDay(0);
+      }
+    });
+  }, []);
+
+  // Завантаження черг (без змін)
   useEffect(() => {
     if (region === 'cherkasy') {
       fetch('/schedule_today.json')
           .then(res => res.json())
           .then(data => {
-            // Беремо першу доступну дату
             const dateKey = Object.keys(data)[0];
             const schedule = data[dateKey]?.schedule;
-
             if (schedule) {
-              //Отримуємо номери черги та сортуємо їх
               const queues = Object.keys(schedule).sort();
               setAvailableQueues(queues);
             }
@@ -57,7 +68,6 @@ const ScheduleForm = ({ onSearch }) => {
     });
   };
 
-  //Якщо перевибрали область, то виводимо необхідну чергу
   const handleRegionChange = (e) => {
     setRegion(e.target.value);
     setGroup('');
@@ -72,7 +82,6 @@ const ScheduleForm = ({ onSearch }) => {
 
         <form className="form" onSubmit={handleSubmit}>
 
-          {/*Селектор областей*/}
           <div className="form-group">
             <label>Область</label>
             <div className="select-wrapper">
@@ -88,7 +97,6 @@ const ScheduleForm = ({ onSearch }) => {
             </div>
           </div>
 
-          {/*Список черг*/}
           <div className="form-group">
             <label>Черга</label>
             <div className={`select-wrapper ${!region ? 'disabled' : ''}`}>
@@ -102,7 +110,6 @@ const ScheduleForm = ({ onSearch }) => {
                   {!region ? 'Спочатку оберіть область' : 'Оберіть чергу'}
                 </option>
 
-                {/*Recheck чи є необхідна черга в файлі*/}
                 {availableQueues.map((q) => (
                     <option key={q} value={q}>
                       Черга {q}
@@ -113,7 +120,6 @@ const ScheduleForm = ({ onSearch }) => {
             </div>
           </div>
 
-          {/*Сьогодні/Завтра селектор*/}
           <div className="form-group">
             <label>День</label>
             <div className="toggle-group">
@@ -126,8 +132,10 @@ const ScheduleForm = ({ onSearch }) => {
               </button>
               <button
                   type="button"
+                  // Додаємо клас disabled і атрибут disabled
                   className={`toggle-btn ${activeDay === 1 ? 'active' : ''}`}
-                  onClick={() => setActiveDay(1)}
+                  onClick={() => setIsTomorrowAvailable && setActiveDay(1)}
+                  disabled={!isTomorrowAvailable}
               >
                 Завтра
               </button>
@@ -194,7 +202,6 @@ const ScheduleForm = ({ onSearch }) => {
           border-color: var(--primary);
         }
 
-        /* Стиль для заблокованого селекта */
         .form-control:disabled {
           background-color: #f3f4f6;
           color: #9ca3af;
@@ -242,6 +249,12 @@ const ScheduleForm = ({ onSearch }) => {
           background: var(--primary);
           color: white;
           box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Стиль для заблокованої кнопки "Завтра" */
+        .toggle-btn:disabled {
+          color: #d1d5db; /* Дуже світлий сірий */
+          cursor: not-allowed;
         }
 
         .btn-submit {

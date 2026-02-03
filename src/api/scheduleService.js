@@ -1,37 +1,38 @@
-const JSON_FILE_URL = '/schedule_today.json';
-
 export const fetchSchedule = async (requestData) => {
-    try {
-        const response = await fetch(JSON_FILE_URL);
-        if (!response.ok) {
-            throw new Error('Файл schedule_today.json не знайдено');
-        }
-        const data = await response.json();
+    const jsonFileUrl = requestData.day === 'tomorrow'
+        ? '/schedule_tomorrow.json'
+        : '/schedule_today.json';
 
+    try {
+        const response = await fetch(jsonFileUrl);
+
+        if (!response.ok) {
+            throw new Error(`Файл графіку (${jsonFileUrl}) не знайдено`);
+        }
+
+        const data = await response.json();
         const availableDates = Object.keys(data);
         if (availableDates.length === 0) throw new Error("Файл порожній");
+
         const dateKey = availableDates[0];
         const dayData = data[dateKey];
-
         const requestedGroup = requestData.group;
         const schedule = dayData.schedule;
 
-        if (!schedule[requestedGroup]) {
-            throw new Error(`Дані для черги ${requestedGroup} відсутні`);
+        if (!schedule || !schedule[requestedGroup]) {
+            throw new Error(`Дані для черги ${requestedGroup} відсутні у файлі`);
         }
 
-        //Години відключень напряму з файлу
         const rawOffRanges = schedule[requestedGroup];
 
-        //Генерація годин коли світло є, таймлайн
         const { timeline, stats } = generateExactTimeline(rawOffRanges);
 
         return {
             region: 'Черкаська область',
             group: requestedGroup,
             day: dateKey,
-            timeline: timeline, // Новий формат даних: список точних інтервалів
-            stats: stats        // Статистика для діаграми
+            timeline: timeline,
+            stats: stats
         };
 
     } catch (error) {
@@ -40,25 +41,61 @@ export const fetchSchedule = async (requestData) => {
     }
 };
 
+export const checkTomorrowAvailability = async () => {
+    try {
+        const [todayRes, tomorrowRes] = await Promise.all([
+            fetch('/schedule_today.json'),
+            fetch('/schedule_tomorrow.json')
+        ]);
+
+        if (!tomorrowRes.ok || !todayRes.ok) return false;
+
+        const todayData = await todayRes.json();
+        const tomorrowData = await tomorrowRes.json();
+
+        const todayDateStr = Object.keys(todayData)[0];
+        const tomorrowDateStr = Object.keys(tomorrowData)[0];
+
+        if (!todayDateStr || !tomorrowDateStr) return false;
+
+        const todayDate = new Date(todayDateStr);
+        const tomorrowDate = new Date(tomorrowDateStr);
+
+        return todayDate < tomorrowDate;
+
+    } catch (error) {
+        return false;
+    }
+};
+
+// --- ВИПРАВЛЕНА ЛОГІКА ТАЙМЛАЙНУ ---
+
 const generateExactTimeline = (offRangesStr) => {
-    //Перетворюємо рядки ["00:00-04:00"] у хвилини [{start: 0, end: 240}]
     let offIntervals = offRangesStr.map(range => {
         const [startStr, endStr] = range.split('-');
-        return {
-            start: timeToMinutes(startStr),
-            end: timeToMinutes(endStr)
-        };
+
+        let start = timeToMinutes(startStr);
+        let end = timeToMinutes(endStr);
+
+        // ВАЖЛИВИЙ ФІКС:
+        // Якщо кінець інтервалу 00:00 (0 хвилин), це означає опівніч наступної доби (24:00 = 1440 хв)
+        // Але тільки якщо це не старт інтервалу (бо 00:00-04:00 - це ок)
+        if (end === 0) {
+            end = 1440;
+        }
+
+        return { start, end };
     });
 
-    //Сортуємо за часом початку
+    // Сортуємо
     offIntervals.sort((a, b) => a.start - b.start);
 
     const timeline = [];
-    let currentCursor = 0; // Починаємо з 00:00 (0 хвилин)
+    let currentCursor = 0;
     let totalOffMinutes = 0;
 
-    //Проходимося по відключеннях і заповнюємо проміжки зі світлом
     offIntervals.forEach(off => {
+        // 1. Зелений блок (якщо є проміжок до початку відключення)
         if (off.start > currentCursor) {
             timeline.push({
                 start: minutesToTime(currentCursor),
@@ -67,18 +104,22 @@ const generateExactTimeline = (offRangesStr) => {
             });
         }
 
-        //Додаємо саме відключення
-        timeline.push({
-            start: minutesToTime(off.start),
-            end: minutesToTime(off.end),
-            type: 'off'
-        });
+        // 2. Червоний блок (саме відключення)
+        // Додаткова перевірка, щоб не додавати "від'ємні" інтервали, якщо дані криві
+        if (off.end > off.start) {
+            timeline.push({
+                start: minutesToTime(off.start),
+                end: minutesToTime(off.end), // Тут тепер буде 24:00 замість 00:00
+                type: 'off'
+            });
 
-        totalOffMinutes += (off.end - off.start);
-        currentCursor = Math.max(currentCursor, off.end);
+            // Оновлюємо курсор і статистику
+            totalOffMinutes += (off.end - off.start);
+            currentCursor = Math.max(currentCursor, off.end);
+        }
     });
 
-    //Якщо після останнього відключення ще не 24:00
+    // 3. Додаємо фінальний зелений блок, якщо доба ще не скінчилась
     if (currentCursor < 1440) {
         timeline.push({
             start: minutesToTime(currentCursor),
@@ -96,14 +137,12 @@ const generateExactTimeline = (offRangesStr) => {
     };
 };
 
-//Переводимо години в хвилини, наприклад: 14:30 -> 870 хвилин
 const timeToMinutes = (timeStr) => {
     if (timeStr === "24:00") return 1440;
     const [h, m] = timeStr.split(':').map(Number);
     return h * 60 + m;
 };
 
-//Переводимо хвилини в години, наприкла: 870 це 14:30
 const minutesToTime = (minutes) => {
     if (minutes === 1440) return "24:00";
     const h = Math.floor(minutes / 60);
