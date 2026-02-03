@@ -11,10 +11,10 @@ const ScheduleForm = ({ onSearch }) => {
 
   const [availableQueues, setAvailableQueues] = useState([]);
 
-  // Стан доступності кнопки "Завтра"
+  //Стан доступності кнопки "Завтра"
   const [isTomorrowAvailable, setIsTomorrowAvailable] = useState(false);
 
-  // Перевіряємо доступність завтрашнього дня при завантаженні
+  //Перевіряємо доступність завтрашнього дня при завантаженні
   useEffect(() => {
     checkTomorrowAvailability().then(available => {
       setIsTomorrowAvailable(available);
@@ -25,7 +25,7 @@ const ScheduleForm = ({ onSearch }) => {
     });
   }, []);
 
-  // Завантаження черг (без змін)
+  //Завантаження черг
   useEffect(() => {
     if (region === 'cherkasy') {
       fetch('/schedule_today.json')

@@ -77,7 +77,6 @@ const generateExactTimeline = (offRangesStr) => {
         let start = timeToMinutes(startStr);
         let end = timeToMinutes(endStr);
 
-        // ВАЖЛИВИЙ ФІКС:
         // Якщо кінець інтервалу 00:00 (0 хвилин), це означає опівніч наступної доби (24:00 = 1440 хв)
         // Але тільки якщо це не старт інтервалу (бо 00:00-04:00 - це ок)
         if (end === 0) {
@@ -87,7 +86,7 @@ const generateExactTimeline = (offRangesStr) => {
         return { start, end };
     });
 
-    // Сортуємо
+    //Сортуємо
     offIntervals.sort((a, b) => a.start - b.start);
 
     const timeline = [];
@@ -104,8 +103,8 @@ const generateExactTimeline = (offRangesStr) => {
             });
         }
 
-        // 2. Червоний блок (саме відключення)
-        // Додаткова перевірка, щоб не додавати "від'ємні" інтервали, якщо дані криві
+        //Червоний блок
+        //Додаткова перевірка, щоб не додавати "від'ємні" інтервали, якщо дані криві
         if (off.end > off.start) {
             timeline.push({
                 start: minutesToTime(off.start),
@@ -113,13 +112,13 @@ const generateExactTimeline = (offRangesStr) => {
                 type: 'off'
             });
 
-            // Оновлюємо курсор і статистику
+            //Оновлюємо статистику
             totalOffMinutes += (off.end - off.start);
             currentCursor = Math.max(currentCursor, off.end);
         }
     });
 
-    // 3. Додаємо фінальний зелений блок, якщо доба ще не скінчилась
+    //Додаємо фінальний зелений блок, якщо доба ще не скінчилась
     if (currentCursor < 1440) {
         timeline.push({
             start: minutesToTime(currentCursor),
