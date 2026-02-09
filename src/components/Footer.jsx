@@ -1,25 +1,26 @@
 import React from 'react';
 
 const Footer = () => {
-  return (
-    <footer className="footer">
-      <div className="container">
-        <div className="footer-links">
-          <a href="#">Про проєкт</a>
-          <a href="#">Контакти</a>
-          <a href="#">Політика конфіденційності</a>
-        </div>
-        <p className="copyright">
-          &copy; 2026 Графік відключень світла. Всі права захищені.
-        </p>
-      </div>
+    return (
+        <footer className="footer">
+            <div className="container">
+                <div className="footer-links">
+                    <a href="#">Про проєкт</a>
+                    <a href="#">Контакти</a>
+                    <a href="#">Політика конфіденційності</a>
+                </div>
+                <p className="copyright">
+                    &copy; 2026 Графік відключень світла. Всі права захищені.
+                </p>
+            </div>
 
-      <style>{`
+            <style>{`
         .footer {
           padding: 40px 0;
-          background: white; /* Або прозорий, як на макеті */
-          border-top: 1px solid var(--border);
-          margin-top: auto; /* Притискаємо до низу, якщо контенту мало */
+          background: var(--bg-card); /* ЗМІНЕНО: тепер бере колір з теми */
+          border-top: 1px solid var(--border); /* ЗМІНЕНО: тепер бере колір з теми */
+          margin-top: auto; 
+          transition: background 0.3s, border-color 0.3s;
         }
 
         .footer-links {
@@ -32,7 +33,7 @@ const Footer = () => {
 
         .footer-links a {
           text-decoration: none;
-          color: var(--text-light);
+          color: var(--text-secondary); /* ЗМІНЕНО */
           font-size: 0.9rem;
           transition: color 0.2s;
         }
@@ -43,12 +44,12 @@ const Footer = () => {
 
         .copyright {
           text-align: center;
-          color: #9ca3af; /* Світліший сірий */
+          color: var(--text-secondary); /* ЗМІНЕНО */
           font-size: 0.85rem;
         }
       `}</style>
-    </footer>
-  );
+        </footer>
+    );
 };
 
 export default Footer;
