@@ -1,101 +1,126 @@
 import React, { useState } from 'react';
-import { Zap, X, Send, AlertCircle, Sun, Moon } from 'lucide-react';
+import { Zap, X, Send, AlertCircle, Sun, Moon, Github, ExternalLink } from 'lucide-react';
 
 const Header = ({ theme, toggleTheme }) => {
-    const [activeModal, setActiveModal] = useState(null);
-    const closeModal = () => setActiveModal(null);
+  const [activeModal, setActiveModal] = useState(null);
+  const closeModal = () => setActiveModal(null);
 
-    const handleOverlayClick = (e) => {
-        if (e.target === e.currentTarget) closeModal();
-    };
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) closeModal();
+  };
 
-    return (
-        <>
-            <header className="header">
-                <div className="container header-content">
-                    <div className="logo">
-                        <Zap className="logo-icon" size={24} color="#f59e0b" fill="#f59e0b" />
-                        <span>СвітлоUA</span>
-                    </div>
+  return (
+    <>
+      <header className="header">
+        <div className="container header-content">
+          <div className="logo">
+            <Zap className="logo-icon" size={24} color="#f59e0b" fill="#f59e0b" />
+            <span>СвітлоUA</span>
+          </div>
 
-                    <div className="nav-wrapper">
-                        <nav className="nav">
-                            {/* 1. Посилання на GitHub */}
-                            <a
-                                href="https://github.com/Nadlaf/LightUA"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="nav-link"
-                            >
-                                Про проєкт
-                            </a>
+          <div className="nav-wrapper">
+            <nav className="nav">
+              {/*Кнопка Про проєкт*/}
+              <button 
+                className="nav-link btn-link" 
+                onClick={() => setActiveModal('github')}
+              >
+                Про проєкт
+              </button>
 
-                            {/* 2. Кнопка Контакти */}
-                            <button
-                                className="nav-link btn-link"
-                                onClick={() => setActiveModal('contacts')}
-                            >
-                                Контакти
-                            </button>
+              {/*Кнопка Контакти*/}
+              <button 
+                className="nav-link btn-link" 
+                onClick={() => setActiveModal('contacts')}
+              >
+                Контакти
+              </button>
 
-                            {/* 3. Кнопка Підтримка */}
-                            <button
-                                className="nav-link btn-link"
-                                onClick={() => setActiveModal('support')}
-                            >
-                                Підтримка
-                            </button>
-                        </nav>
+              {/*Кнопка Підтримка*/}
+              <button 
+                className="nav-link btn-link" 
+                onClick={() => setActiveModal('support')}
+              >
+                Підтримка
+              </button>
+            </nav>
 
-                        {/* Кнопка перемикання теми */}
-                        <button
-                            className="theme-btn"
-                            onClick={toggleTheme}
-                            title={theme === 'light' ? "Увімкнути темну тему" : "Увімкнути світлу тему"}
-                        >
-                            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} color="#f59e0b" />}
-                        </button>
-                    </div>
+            {/*Зміна теми*/}
+            <button 
+              className="theme-btn" 
+              onClick={toggleTheme}
+              title={theme === 'light' ? "Увімкнути темну тему" : "Увімкнути світлу тему"}
+            >
+              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} color="#f59e0b" />}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/*Модалки*/}
+      {activeModal && (
+        <div className="modal-overlay" onClick={handleOverlayClick}>
+          <div className="modal-content">
+            <button className="close-btn" onClick={closeModal}>
+              <X size={20} />
+            </button>
+
+            {/*Про проект*/}
+            {activeModal === 'github' && (
+              <div className="modal-body centered">
+                <div className="icon-wrapper">
+                  <Github size={40} color="#3b82f6" />
                 </div>
-            </header>
-
-            {/* --- МОДАЛЬНІ ВІКНА --- */}
-            {activeModal && (
-                <div className="modal-overlay" onClick={handleOverlayClick}>
-                    <div className="modal-content">
-                        <button className="close-btn" onClick={closeModal}>
-                            <X size={20} />
-                        </button>
-
-                        {/* Вміст для КОНТАКТІВ */}
-                        {activeModal === 'contacts' && (
-                            <div className="modal-body">
-                                <h3>Зв'язок з розробниками</h3>
-                                <p className="modal-desc">Маєте пропозиції чи знайшли помилку? Пишіть нам:</p>
-
-                                <div className="contact-list">
-                                    <a href="https://t.me/faldanchik" target="_blank" rel="noreferrer" className="contact-item">
-                                        <Send size={18} /> @faldanchik
-                                    </a>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Вміст для ПІДТРИМКИ */}
-                        {activeModal === 'support' && (
-                            <div className="modal-body centered">
-                                <div className="icon-wrapper">
-                                    <AlertCircle size={40} color="#3b82f6" />
-                                </div>
-                                <h3>Функція в розробці</h3>
-                                <button className="btn-ok" onClick={closeModal}>Зрозуміло</button>
-                            </div>
-                        )}
-                    </div>
+                <h3>Перехід на GitHub</h3>
+                <p className="modal-desc">
+                  Ви переходите на сторінку з вихідним кодом проєкту. Бажаєте продовжити?
+                </p>
+                <div className="modal-actions">
+                  <button className="btn-secondary" onClick={closeModal}>
+                    Скасувати
+                  </button>
+                  <a 
+                    href="https://github.com/Nadlaf/LightUA"
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="btn-primary"
+                    onClick={closeModal}
+                  >
+                    Перейти <ExternalLink size={16} style={{marginLeft: 6}}/>
+                  </a>
                 </div>
+              </div>
             )}
 
-            <style>{`
+            {/*Контакти*/}
+            {activeModal === 'contacts' && (
+              <div className="modal-body">
+                <h3>Зв'язок з розробниками</h3>
+                <p className="modal-desc">Маєте пропозиції чи знайшли помилку? Пишіть нам:</p>
+                
+                <div className="contact-list">
+                  <a href="https://t.me/faldanchik" target="_blank" rel="noreferrer" className="contact-item">
+                    <Send size={18} /> @faldanchik
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/*Підтримка*/}
+            {activeModal === 'support' && (
+              <div className="modal-body centered">
+                <div className="icon-wrapper">
+                  <AlertCircle size={40} color="#3b82f6" />
+                </div>
+                <h3>Функція в розробці</h3>
+                <button className="btn-primary" onClick={closeModal}>Зрозуміло</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <style>{`
         .header {
           background-color: var(--bg-card);
           padding: 15px 0;
@@ -178,7 +203,7 @@ const Header = ({ theme, toggleTheme }) => {
         }
         .contact-item:hover { background: var(--bg-element-hover); color: var(--primary); }
         
-        /* Підтримка */
+        /* Centered Modal (Support & GitHub) */
         .centered { text-align: center; display: flex; flex-direction: column; align-items: center; }
         .icon-wrapper { 
           width: 60px; height: 60px; 
@@ -188,21 +213,44 @@ const Header = ({ theme, toggleTheme }) => {
           margin-bottom: 15px; 
         }
 
-        .btn-ok {
+        /* Buttons Action Group */
+        .modal-actions {
+          display: flex;
+          gap: 15px;
+          width: 100%;
+          justify-content: center;
+        }
+
+        .btn-primary {
           background: var(--primary); color: white;
           border: none; padding: 10px 24px; border-radius: 10px;
-          font-weight: 600; cursor: pointer; margin-top: 10px;
+          font-weight: 600; cursor: pointer; 
           transition: background 0.2s;
+          text-decoration: none;
+          display: inline-flex; align-items: center; justify-content: center;
         }
-        .btn-ok:hover { background: var(--primary-hover); }
+        .btn-primary:hover { background: var(--primary-hover); }
+
+        .btn-secondary {
+          background: transparent; 
+          color: var(--text-secondary);
+          border: 1px solid var(--border); 
+          padding: 10px 24px; border-radius: 10px;
+          font-weight: 600; cursor: pointer; 
+          transition: all 0.2s;
+        }
+        .btn-secondary:hover { 
+          border-color: var(--text-main);
+          color: var(--text-main); 
+        }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         @media (max-width: 768px) { .nav { display: none; } }
       `}</style>
-        </>
-    );
+    </>
+  );
 };
 
 export default Header;
