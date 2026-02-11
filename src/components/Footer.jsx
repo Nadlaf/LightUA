@@ -90,6 +90,9 @@ const Footer = () => {
                   <a href="https://t.me/faldanchik" target="_blank" rel="noreferrer" className="contact-item">
                     <Send size={18} /> @faldanchik
                   </a>
+                  <a href="https://t.me/NeToR_1" target="_blank" rel="noreferrer" className="contact-item">
+                    <Send size={18} /> @NeToR_1
+                  </a>
                 </div>
               </div>
             )}
