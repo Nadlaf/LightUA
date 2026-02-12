@@ -4,13 +4,12 @@ import { Search, PieChart, Clock } from 'lucide-react';
 const ScheduleResult = ({ scheduleData }) => {
     const [isClockView, setIsClockView] = useState(false);
 
-    // СТИЛІ НА ЗМІННИХ
     const StyleBlock = () => (
         <style>{`
       .empty-card {
         min-height: 600px; height: 100%;
         border: 2px dashed var(--primary); 
-        background-color: var(--bg-card); /* ЗМІННА */
+        background-color: var(--bg-card);
         border-radius: 24px;
         box-shadow: var(--shadow);
         display: flex; align-items: center; justify-content: center; text-align: center; padding: 40px;
@@ -25,16 +24,15 @@ const ScheduleResult = ({ scheduleData }) => {
       .results-wrapper { display: flex; flex-direction: column; gap: 20px; }
 
       .card {
-        background: var(--bg-card); /* ЗМІННА */
+        background: var(--bg-card);
         border-radius: 24px; padding: 30px; box-shadow: var(--shadow);
         position: relative; transition: background 0.3s;
       }
 
       .toggle-view-btn {
         position: absolute; top: 20px; right: 20px; width: 40px; height: 40px;
-        border-radius: 12px; border: 1px solid var(--border); /* ЗМІННА */
-        background: var(--bg-element); /* ЗМІННА */
-        color: var(--text-secondary);
+        border-radius: 12px; border: 1px solid var(--border);
+        background: var(--bg-element); color: var(--text-secondary);
         cursor: pointer; display: flex; align-items: center; justify-content: center;
         transition: all 0.2s; z-index: 10;
       }
@@ -47,8 +45,6 @@ const ScheduleResult = ({ scheduleData }) => {
         width: 200px; height: 200px; border-radius: 50%; position: relative;
         display: flex; align-items: center; justify-content: center;
       }
-
-      /* Годинник */
       .clock-wrapper { position: relative; padding: 20px; }
       .clock-separators {
         position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%;
@@ -64,13 +60,10 @@ const ScheduleResult = ({ scheduleData }) => {
       .label-18 { left: 0; top: 50%; transform: translateY(-50%); }
 
       .donut-hole {
-        width: 130px; height: 130px;
-        background: var(--bg-card); /* ЗМІННА! Важливо, щоб дірка була кольору картки */
-        border-radius: 50%;
+        width: 130px; height: 130px; background: var(--bg-card); border-radius: 50%;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         line-height: 1.1; z-index: 3; box-shadow: 0 0 20px rgba(0,0,0,0.05);
       }
-
       .percent-text { font-size: 2.2rem; font-weight: 700; color: var(--text-main); }
       .label-text { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 2px; }
       .hours-text { font-size: 1.2rem; font-weight: 600; color: var(--text-main); }
@@ -90,17 +83,15 @@ const ScheduleResult = ({ scheduleData }) => {
         display: flex; justify-content: space-between; align-items: center;
         padding: 16px 20px; border-radius: 12px; font-size: 1.1rem;
       }
-
-      /* Використовуємо змінні статусів з index.css */
       .row-on { background-color: var(--status-green-bg); color: var(--status-green-text); }
       .row-off { background-color: var(--status-red-bg); color: var(--status-red-text); }
-
       .status-label { font-weight: 600; }
       .time-range { font-weight: 500; letter-spacing: 0.5px; }
-    `}</style>
+    `}
+        </style>
     );
 
-    // ... (JS код без змін) ...
+    //Початкова форма результату без графіків
     if (!scheduleData) {
         return (
             <div className="empty-card">
@@ -114,10 +105,12 @@ const ScheduleResult = ({ scheduleData }) => {
         );
     }
 
+    //Статистика дня (всередині діаграми)
     const { timeline, stats, day } = scheduleData;
     const offPercentage = stats.percentage;
     const offHoursText = Math.round(stats.totalOffMinutes / 60);
 
+    //Діаграма
     const formatDate = (isoDate) => {
         if (!isoDate) return '';
         const parts = isoDate.split('-');
@@ -125,6 +118,7 @@ const ScheduleResult = ({ scheduleData }) => {
         return `${parts[2]}.${parts[1]}.${parts[0]}`;
     };
 
+    //Діаграма годинник
     const generateClockGradient = () => {
         const stops = timeline.map(item => {
             const startMin = timeToMinutes(item.start);
@@ -137,6 +131,7 @@ const ScheduleResult = ({ scheduleData }) => {
         return `conic-gradient(${stops.join(', ')})`;
     };
 
+    //Розбивка годин в хвилини
     const timeToMinutes = (timeStr) => {
         if (timeStr === "24:00") return 1440;
         const [h, m] = timeStr.split(':').map(Number);
@@ -146,6 +141,8 @@ const ScheduleResult = ({ scheduleData }) => {
     return (
         <div className="results-wrapper">
             <div className="card chart-card">
+
+                {/*Кнопка перемкнення діаграми*/}
                 <button
                     className="toggle-view-btn"
                     onClick={() => setIsClockView(!isClockView)}

@@ -1,59 +1,59 @@
-// URL файлів
 const FILES = {
+    cities: '/cities.json',
     today: '/schedule_today.json',
     tomorrow: '/schedule_tomorrow.json',
-    history: '/schedule_history.json'
+    historyBase: '/schedule_history_'
 };
 
-// --- ГОЛОВНА ФУНКЦІЯ ОТРИМАННЯ ДАНИХ ---
 export const fetchSchedule = async (requestData) => {
-    // requestData тепер має поле 'date' (YYYY-MM-DD), а не 'day'
     const targetDate = requestData.date;
+    const regionId = Number(requestData.region);
 
     try {
-        // 1. Спочатку дізнаємося, де шукати цю дату (Сьогодні, Завтра чи Історія)
-        const source = await determineSourceForDate(targetDate);
+        const source = await determineSourceForDate(targetDate, regionId);
 
         if (!source) {
             throw new Error(`Дані за ${targetDate} відсутні.`);
         }
 
-        // 2. Отримуємо "сирі" дані з правильного джерела
-        let rawData = null;
-        let schedule = null;
+        const response = await fetch(source.url);
+        if (!response.ok) throw new Error(`Не вдалося завантажити файл ${source.url}`);
 
-        if (source.type === 'history') {
-            // Історія - це масив, треба знайти потрібний об'єкт
-            const historyArr = await fetch(FILES.history).then(r => r.json());
-            const dayObj = historyArr.find(d => d.schedule_date === targetDate);
-            if (dayObj) schedule = dayObj.schedule;
+        const dataArray = await response.json();
+        let dayData = null;
+
+        if (Array.isArray(dataArray)) {
+            dayData = dataArray.find(item =>
+                item.schedule_date === targetDate && item.channel_id === regionId
+            );
         } else {
-            // Сьогодні або Завтра - це об'єкт з ключем-датою
-            const response = await fetch(source.url);
-            const data = await response.json();
-            // Ключ може бути датою, тому беремо data[targetDate] або просто перший ключ
-            schedule = data[targetDate]?.schedule || Object.values(data)[0]?.schedule;
+            dayData = dataArray[targetDate];
         }
 
-        if (!schedule) {
-            throw new Error(`Графік на ${targetDate} не знайдено.`);
+        if (!dayData || !dayData.schedule) {
+            throw new Error(`Графік для регіону (ID: ${regionId}) на ${targetDate} не знайдено.`);
         }
 
-        // 3. Перевіряємо чергу
+        const schedule = dayData.schedule;
         const requestedGroup = requestData.group;
+
+        // --- НОВЕ: Отримуємо статус аварійних відключень ---
+        // Якщо поля немає в JSON, вважаємо що false
+        const isEmergency = dayData.emergency_outages || false;
+
         if (!schedule[requestedGroup]) {
             throw new Error(`Дані для черги ${requestedGroup} відсутні.`);
         }
 
-        // 4. Генеруємо таймлайн
         const { timeline, stats } = generateExactTimeline(schedule[requestedGroup]);
 
         return {
-            region: 'Черкаська область',
+            region: regionId,
             group: requestedGroup,
             day: targetDate,
             timeline: timeline,
-            stats: stats
+            stats: stats,
+            emergencyOutages: isEmergency // <--- Передаємо цей прапорець у результат
         };
 
     } catch (error) {
@@ -62,67 +62,59 @@ export const fetchSchedule = async (requestData) => {
     }
 };
 
-// --- ОТРИМАННЯ ІНФОРМАЦІЇ ПРО ДОСТУПНІ ДАТИ ---
-// Ця функція викликається при завантаженні, щоб намалювати календар
-export const getCalendarInfo = async () => {
-    const info = {
-        todayDate: null, // Яка дата вважається "сьогодні" (з файлу)
-        availableDates: [] // Список всіх дат, для яких є графіки (YYYY-MM-DD)
-    };
-
+// --- (Решта файлу без змін) ---
+export const getCalendarInfo = async (regionId) => {
+    const info = { todayDate: null, availableDates: new Set() };
     try {
-        // 1. Дізнаємось дату "Сьогодні"
         const todayRes = await fetch(FILES.today);
         if (todayRes.ok) {
             const data = await todayRes.json();
-            // Беремо перший ключ об'єкта як дату
-            info.todayDate = Object.keys(data)[0];
-            info.availableDates.push(info.todayDate);
-        }
-
-        // 2. Перевіряємо "Завтра"
-        const tmrRes = await fetch(FILES.tomorrow);
-        if (tmrRes.ok) {
-            const data = await tmrRes.json();
-            const tmrDate = Object.keys(data)[0];
-            if (tmrDate) info.availableDates.push(tmrDate);
-        }
-
-        // 3. Завантажуємо історію
-        const histRes = await fetch(FILES.history);
-        if (histRes.ok) {
-            const historyData = await histRes.json(); // Це масив
-            if (Array.isArray(historyData)) {
-                const historyDates = historyData.map(d => d.schedule_date);
-                info.availableDates.push(...historyDates);
+            if (Array.isArray(data) && data.length > 0) {
+                info.todayDate = data[0].schedule_date;
+                if (regionId) {
+                    const hasRegion = data.some(d => d.channel_id === Number(regionId));
+                    if (hasRegion) info.availableDates.add(info.todayDate);
+                }
             }
         }
-
-        // Прибираємо дублікати і сортуємо
-        info.availableDates = [...new Set(info.availableDates)].sort();
-
-        return info;
-
-    } catch (e) {
-        console.error("Помилка ініціалізації календаря:", e);
-        return info;
-    }
+        if (!regionId) return { todayDate: info.todayDate, availableDates: [] };
+        const rId = Number(regionId);
+        try {
+            const tmrRes = await fetch(FILES.tomorrow);
+            if (tmrRes.ok) {
+                const data = await tmrRes.json();
+                if (Array.isArray(data)) {
+                    const hasRegion = data.some(d => d.channel_id === rId);
+                    if (hasRegion && data[0]?.schedule_date) info.availableDates.add(data[0].schedule_date);
+                }
+            }
+        } catch (e) {}
+        try {
+            const historyUrl = `${FILES.historyBase}${rId}.json`;
+            const histRes = await fetch(historyUrl);
+            if (histRes.ok) {
+                const historyData = await histRes.json();
+                if (Array.isArray(historyData)) {
+                    historyData.forEach(item => {
+                        if (item.schedule_date && item.channel_id === rId) info.availableDates.add(item.schedule_date);
+                    });
+                }
+            }
+        } catch (e) { console.warn(`Історія для регіону ${rId} не знайдена.`); }
+        return { todayDate: info.todayDate, availableDates: Array.from(info.availableDates).sort() };
+    } catch (e) { return info; }
 };
 
-// --- Helpers ---
-
-// Визначає, з якого файлу брати дату
-async function determineSourceForDate(date) {
-    // Перевіряємо "Сьогодні"
-    const info = await getCalendarInfo(); // Це трохи неоптимально викликати щоразу, але надійно
-
-    if (date === info.todayDate) return { type: 'today', url: FILES.today };
-
-    // Перевіряємо "Завтра" (якщо дата більша за сьогодні)
-    if (date > info.todayDate) return { type: 'tomorrow', url: FILES.tomorrow };
-
-    // Інакше шукаємо в історії
-    return { type: 'history', url: FILES.history };
+async function determineSourceForDate(date, regionId) {
+    let todayDate = null;
+    try {
+        const res = await fetch(FILES.today);
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) todayDate = data[0].schedule_date;
+    } catch(e) {}
+    if (todayDate && date === todayDate) return { type: 'today', url: FILES.today };
+    if (todayDate && date > todayDate) return { type: 'tomorrow', url: FILES.tomorrow };
+    return { type: 'history', url: `${FILES.historyBase}${regionId}.json` };
 }
 
 const generateExactTimeline = (offRangesStr) => {
@@ -130,55 +122,32 @@ const generateExactTimeline = (offRangesStr) => {
         const [startStr, endStr] = range.split('-');
         let start = timeToMinutes(startStr);
         let end = timeToMinutes(endStr);
-        if (end === 0) end = 1440;
+        if (end === 0 && start !== 0) end = 1440;
         return { start, end };
     });
-
     offIntervals.sort((a, b) => a.start - b.start);
-
     const timeline = [];
     let currentCursor = 0;
     let totalOffMinutes = 0;
-
     offIntervals.forEach(off => {
         if (off.start > currentCursor) {
-            timeline.push({
-                start: minutesToTime(currentCursor),
-                end: minutesToTime(off.start),
-                type: 'on'
-            });
+            timeline.push({ start: minutesToTime(currentCursor), end: minutesToTime(off.start), type: 'on' });
         }
         if (off.end > off.start) {
-            timeline.push({
-                start: minutesToTime(off.start),
-                end: minutesToTime(off.end),
-                type: 'off'
-            });
+            timeline.push({ start: minutesToTime(off.start), end: minutesToTime(off.end), type: 'off' });
             totalOffMinutes += (off.end - off.start);
             currentCursor = Math.max(currentCursor, off.end);
         }
     });
-
     if (currentCursor < 1440) {
-        timeline.push({
-            start: minutesToTime(currentCursor),
-            end: "24:00",
-            type: 'on'
-        });
+        timeline.push({ start: minutesToTime(currentCursor), end: "24:00", type: 'on' });
     }
-
-    return {
-        timeline,
-        stats: {
-            totalOffMinutes,
-            percentage: Math.round((totalOffMinutes / 1440) * 100)
-        }
-    };
+    return { timeline, stats: { totalOffMinutes, percentage: Math.round((totalOffMinutes / 1440) * 100) } };
 };
 
 const timeToMinutes = (timeStr) => {
     if (timeStr === "24:00") return 1440;
-    const [h, m] = timeStr.split(':').map(Number);
+    const [h, m] = timeStr.trim().split(':').map(Number);
     return h * 60 + m;
 };
 
