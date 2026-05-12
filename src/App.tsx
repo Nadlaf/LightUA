@@ -1,80 +1,80 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { TriangleAlert } from 'lucide-react';
 import Header from './components/Header';
 import ScheduleForm from './components/ScheduleForm';
 import ScheduleResult from './components/ScheduleResult';
 import Footer from './components/Footer';
 import { fetchSchedule } from './api/scheduleService';
+import type { ScheduleRequest, ScheduleResultData, Theme } from './types';
 
 function App() {
-    const [scheduleData, setScheduleData] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
+  const [scheduleData, setScheduleData] = useState<ScheduleResultData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-    const [theme, setTheme] = useState(() => {
-        return localStorage.getItem('app-theme') || 'light';
-    });
+  const [theme, setTheme] = useState<Theme>(() => {
+    return localStorage.getItem('app-theme') === 'dark' ? 'dark' : 'light';
+  });
 
-    useEffect(() => {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('app-theme', theme);
-    }, [theme]);
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('app-theme', theme);
+  }, [theme]);
 
-    const toggleTheme = () => {
-        setTheme(prev => prev === 'light' ? 'dark' : 'light');
-    };
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
 
-    const handleSearch = async (formData) => {
-        setIsLoading(true);
-        setScheduleData(null);
+  const handleSearch = async (formData: ScheduleRequest) => {
+    setIsLoading(true);
+    setScheduleData(null);
 
-        try {
-            const data = await fetchSchedule(formData);
-            setScheduleData(data);
-        } catch (error) {
-            console.error("Помилка:", error);
-            alert("Не вдалося завантажити графік для обраної дати.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    try {
+      const data = await fetchSchedule(formData);
+      setScheduleData(data);
+    } catch (error) {
+      console.error("Помилка:", error);
+      alert("Не вдалося завантажити графік для обраної дати.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    return (
-        <div className="app-wrapper">
-            <Header theme={theme} toggleTheme={toggleTheme} />
+  return (
+    <div className="app-wrapper">
+      <Header theme={theme} toggleTheme={toggleTheme} />
 
-            <main className="container wide-container main-content">
+      <main className="container wide-container main-content">
+        {scheduleData?.emergencyOutages && (
+          <div className="emergency-banner">
+            <div className="banner-icon">
+              <TriangleAlert size={18} />
+            </div>
+            <span className="banner-text">
+              Наразі працюють аварійні відключення. Графіки можуть бути неточними.
+            </span>
+          </div>
+        )}
 
-                {scheduleData && scheduleData.emergencyOutages && (
-                    <div className="emergency-banner">
-                        <div className="banner-icon">
-                            <TriangleAlert size={18} />
-                        </div>
-                        <span className="banner-text">
-                            Наразі працюють аварійні відключення. Графіки можуть бути неточними.
-                         </span>
-                    </div>
-                )}
+        <div className="grid-layout">
+          <div className="left-panel">
+            <ScheduleForm onSearch={handleSearch} />
+          </div>
 
-                <div className="grid-layout">
-                    <div className="left-panel">
-                        <ScheduleForm onSearch={handleSearch} />
-                    </div>
+          <div className="right-panel">
+            {isLoading ? (
+              <div className="loading-state">
+                <div className="spinner"></div>
+              </div>
+            ) : (
+              <ScheduleResult scheduleData={scheduleData} />
+            )}
+          </div>
+        </div>
+      </main>
 
-                    <div className="right-panel">
-                        {isLoading ? (
-                            <div className="loading-state">
-                                <div className="spinner"></div>
-                            </div>
-                        ) : (
-                            <ScheduleResult scheduleData={scheduleData} />
-                        )}
-                    </div>
-                </div>
-            </main>
+      <Footer />
 
-            <Footer />
-
-            <style>{`
+      <style>{`
         .app-wrapper {
           min-height: 100vh;
           display: flex;
@@ -192,10 +192,9 @@ function App() {
             white-space: normal;
           }
         }
-      `}
-        </style>
-      </div>
-    );
+      `}</style>
+    </div>
+  );
 }
 
 export default App;

@@ -1,52 +1,57 @@
-import React, { useState } from 'react';
-import { X, Send, AlertCircle, Github, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import type { MouseEvent } from 'react';
+import { Zap, X, Send, AlertCircle, Sun, Moon, Github, ExternalLink } from 'lucide-react';
+import type { ActiveModal, ModalType, Theme } from '../types';
 
-const Footer = () => {
-  const [activeModal, setActiveModal] = useState(null);
+interface HeaderProps {
+  theme: Theme;
+  toggleTheme: () => void;
+}
+
+const Header = ({ theme, toggleTheme }: HeaderProps) => {
+  const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const closeModal = () => setActiveModal(null);
+  const openModal = (modal: ModalType) => setActiveModal(modal);
 
-  const handleOverlayClick = (e) => {
+  const handleOverlayClick = (e: MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) closeModal();
   };
 
   return (
     <>
-      {/*Кнопки*/}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-links">
-            {/*Про проєкт*/}
-            <button 
-              className="footer-btn"
-              onClick={() => setActiveModal('github')}
-            >
-              Про проєкт
-            </button>
+      <header className="header">
+        <div className="container header-content">
+          <div className="logo">
+            <Zap className="logo-icon" size={24} color="#f59e0b" fill="#f59e0b" />
+            <span>СвітлоUA</span>
+          </div>
 
-            {/*Контакти*/}
-            <button 
-              className="footer-btn"
-              onClick={() => setActiveModal('contacts')}
-            >
-              Контакти
-            </button>
+          <div className="nav-wrapper">
+            <nav className="nav">
+              <button className="nav-link btn-link" onClick={() => openModal('github')}>
+                Про проєкт
+              </button>
 
-            {/*Підтримка*/}
-            <button 
-              className="footer-btn"
-              onClick={() => setActiveModal('support')}
+              <button className="nav-link btn-link" onClick={() => openModal('contacts')}>
+                Контакти
+              </button>
+
+              <button className="nav-link btn-link" onClick={() => openModal('support')}>
+                Підтримка
+              </button>
+            </nav>
+
+            <button
+              className="theme-btn"
+              onClick={toggleTheme}
+              title={theme === 'light' ? 'Увімкнути темну тему' : 'Увімкнути світлу тему'}
             >
-              Підтримка
+              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} color="#f59e0b" />}
             </button>
           </div>
-          
-          <p className="copyright">
-            &copy; 2026 Графік відключень світла. Всі права захищені.
-          </p>
         </div>
-      </footer>
+      </header>
 
-      {/*Модалки*/}
       {activeModal && (
         <div className="modal-overlay" onClick={handleOverlayClick}>
           <div className="modal-content">
@@ -54,7 +59,6 @@ const Footer = () => {
               <X size={20} />
             </button>
 
-            {/*Про проект*/}
             {activeModal === 'github' && (
               <div className="modal-body centered">
                 <div className="icon-wrapper">
@@ -68,24 +72,24 @@ const Footer = () => {
                   <button className="btn-secondary" onClick={closeModal}>
                     Скасувати
                   </button>
-                  <a 
+                  <a
                     href="https://github.com/Nadlaf/LightUA"
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="btn-primary"
                     onClick={closeModal}
                   >
-                    Перейти <ExternalLink size={16} style={{marginLeft: 6}}/>
+                    Перейти <ExternalLink size={16} style={{ marginLeft: 6 }} />
                   </a>
                 </div>
               </div>
             )}
 
-            {/*Контакти*/}
             {activeModal === 'contacts' && (
               <div className="modal-body">
                 <h3>Зв'язок з розробниками</h3>
                 <p className="modal-desc">Маєте пропозиції чи знайшли помилку? Пишіть нам:</p>
+
                 <div className="contact-list">
                   <a href="https://t.me/faldanchik" target="_blank" rel="noreferrer" className="contact-item">
                     <Send size={18} /> @faldanchik
@@ -97,7 +101,6 @@ const Footer = () => {
               </div>
             )}
 
-            {/*Підтримка*/}
             {activeModal === 'support' && (
               <div className="modal-body centered">
                 <div className="icon-wrapper">
@@ -112,47 +115,56 @@ const Footer = () => {
       )}
 
       <style>{`
-        .footer {
-          padding: 40px 0;
-          background: var(--bg-card);
-          border-top: 1px solid var(--border);
-          margin-top: auto;
-          transition: background 0.3s, border-color 0.3s;
+        .header {
+          background-color: var(--bg-card);
+          padding: 15px 0;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          transition: background 0.3s;
         }
 
-        .footer-links {
+        .header-content {
           display: flex;
-          justify-content: center;
-          gap: 30px;
-          margin-bottom: 20px;
-          flex-wrap: wrap;
+          justify-content: space-between;
           align-items: center;
         }
 
-        /* Стилі для кнопок футера */
-        .footer-btn {
+        .nav-wrapper { display: flex; align-items: center; gap: 20px; }
+
+        .logo {
+          display: flex; align-items: center; gap: 8px;
+          font-weight: 700; font-size: 1.25rem;
+          color: var(--text-main);
+        }
+        .logo-icon { transform: rotate(-10deg); }
+
+        .nav { display: flex; gap: 20px; align-items: center; }
+
+        .nav-link {
           text-decoration: none;
-          color: var(--text-secondary);
-          font-size: 0.9rem;
+          color: var(--text-main);
+          font-size: 0.95rem; font-weight: 500;
+          background: none; border: none; cursor: pointer;
           transition: color 0.2s;
-          background: none;
-          border: none;
-          cursor: pointer;
-          font-family: inherit;
           padding: 0;
+          font-family: inherit;
         }
+        .nav-link:hover { color: var(--primary); }
 
-        .footer-btn:hover {
-          color: var(--primary);
+        .theme-btn {
+          width: 40px; height: 40px;
+          border-radius: 50%;
+          border: 1px solid var(--border);
+          background: var(--bg-element);
+          color: var(--text-main);
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; transition: all 0.2s;
         }
+        .theme-btn:hover { border-color: var(--primary); transform: scale(1.05); }
 
-        .copyright {
-          text-align: center;
-          color: var(--text-secondary);
-          font-size: 0.85rem;
-        }
-
-        /* --- STYLES FOR MODALS --- */
+        /* Modals */
         .modal-overlay {
           position: fixed; top: 0; left: 0; width: 100%; height: 100%;
           background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
@@ -175,6 +187,7 @@ const Footer = () => {
         .modal-body h3 { font-size: 1.25rem; margin-bottom: 10px; font-weight: 700; }
         .modal-desc { color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5; }
 
+        /* Контакти */
         .contact-list { display: flex; flex-direction: column; gap: 10px; }
         .contact-item {
           display: flex; align-items: center; gap: 10px; padding: 12px;
@@ -184,37 +197,54 @@ const Footer = () => {
         }
         .contact-item:hover { background: var(--bg-element-hover); color: var(--primary); }
         
+        /* Centered Modal (Support & GitHub) */
         .centered { text-align: center; display: flex; flex-direction: column; align-items: center; }
         .icon-wrapper { 
-          width: 60px; height: 60px; background: var(--bg-element); 
-          border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; 
+          width: 60px; height: 60px; 
+          background: var(--bg-element); 
+          border-radius: 50%; 
+          display: flex; align-items: center; justify-content: center; 
+          margin-bottom: 15px; 
         }
 
-        /* Modal Actions */
+        /* Buttons Action Group */
         .modal-actions {
-          display: flex; gap: 15px; width: 100%; justify-content: center;
+          display: flex;
+          gap: 15px;
+          width: 100%;
+          justify-content: center;
         }
 
         .btn-primary {
           background: var(--primary); color: white;
           border: none; padding: 10px 24px; border-radius: 10px;
-          font-weight: 600; cursor: pointer; transition: background 0.2s;
-          text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+          font-weight: 600; cursor: pointer; 
+          transition: background 0.2s;
+          text-decoration: none;
+          display: inline-flex; align-items: center; justify-content: center;
         }
         .btn-primary:hover { background: var(--primary-hover); }
 
         .btn-secondary {
-          background: transparent; color: var(--text-secondary);
-          border: 1px solid var(--border); padding: 10px 24px; border-radius: 10px;
-          font-weight: 600; cursor: pointer; transition: all 0.2s;
+          background: transparent; 
+          color: var(--text-secondary);
+          border: 1px solid var(--border); 
+          padding: 10px 24px; border-radius: 10px;
+          font-weight: 600; cursor: pointer; 
+          transition: all 0.2s;
         }
-        .btn-secondary:hover { border-color: var(--text-main); color: var(--text-main); }
+        .btn-secondary:hover { 
+          border-color: var(--text-main);
+          color: var(--text-main); 
+        }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        @media (max-width: 768px) { .nav { display: none; } }
       `}</style>
     </>
   );
 };
 
-export default Footer;
+export default Header;
