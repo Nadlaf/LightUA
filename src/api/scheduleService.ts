@@ -1,74 +1,151 @@
 import type {
   CalendarInfo,
-  ScheduleJsonPayload,
-  ScheduleJsonRow,
+  City,
   ScheduleRequest,
+  ScheduleResponse,
   ScheduleResultData,
   ScheduleStats,
+  StatusResponse,
   TimelineInterval,
 } from '../types';
 
-const FILES = {
-  cities: '/cities.json',
-  today: '/schedule_today.json',
-  tomorrow: '/schedule_tomorrow.json',
-  historyBase: '/schedule_history_',
-} as const;
-
-interface ScheduleSource {
-  type: 'today' | 'tomorrow' | 'history';
-  url: string;
-}
+const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
 
 interface MinuteInterval {
   start: number;
   end: number;
 }
 
+async function apiFetch<T>(path: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`);
+  if (!res.ok) {
+    let message = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { error?: string };
+      if (body.error) message = body.error;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message);
+  }
+  return res.json() as Promise<T>;
+}
+
+let _citiesCache: City[] | null = null;
+
+export async function getCities(): Promise<City[]> {
+  if (_citiesCache) return _citiesCache;
+  const data = await apiFetch<{ cities: City[] }>('/api/cities');
+  _citiesCache = data.cities;
+  return _citiesCache;
+}
+
+export async function getScheduleToday(
+  channelId: number,
+  queue?: string,
+): Promise<ScheduleResponse | null> {
+  const params = new URLSearchParams({ channel_id: String(channelId) });
+  if (queue) params.set('queue', queue);
+
+  const res = await fetch(`${BASE}/api/schedules/today?${params.toString()}`);
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    let message = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { error?: string };
+      if (body.error) message = body.error;
+    } catch { /* ignore */ }
+    throw new Error(message);
+  }
+  return res.json() as Promise<ScheduleResponse>;
+}
+
+export async function getScheduleTomorrow(
+  channelId: number,
+  queue?: string,
+): Promise<ScheduleResponse | null> {
+  const params = new URLSearchParams({ channel_id: String(channelId) });
+  if (queue) params.set('queue', queue);
+
+  const res = await fetch(`${BASE}/api/schedules/tomorrow?${params.toString()}`);
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    let message = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { error?: string };
+      if (body.error) message = body.error;
+    } catch { /* ignore */ }
+    throw new Error(message);
+  }
+  return res.json() as Promise<ScheduleResponse>;
+}
+
+export async function getScheduleForDate(
+  channelId: number,
+  date: string,
+  queue?: string,
+): Promise<ScheduleResponse | null> {
+  const params = new URLSearchParams({ channel_id: String(channelId), date });
+  if (queue) params.set('queue', queue);
+
+  const res = await fetch(`${BASE}/api/schedules?${params.toString()}`);
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    let message = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { error?: string };
+      if (body.error) message = body.error;
+    } catch { /* ignore */ }
+    throw new Error(message);
+  }
+  return res.json() as Promise<ScheduleResponse>;
+}
+
+export async function getStatus(): Promise<StatusResponse> {
+  return apiFetch<StatusResponse>('/api/status');
+}
+
+export async function triggerUpdate(): Promise<{ status: string; message: string }> {
+  const res = await fetch(`${BASE}/api/update`, { method: 'POST' });
+  return res.json() as Promise<{ status: string; message: string }>;
+}
+
 export const fetchSchedule = async (requestData: ScheduleRequest): Promise<ScheduleResultData> => {
+  const channelId = Number(requestData.region);
+  const requestedGroup = requestData.group;
   const targetDate = requestData.date;
-  const regionId = Number(requestData.region);
 
   try {
-    const source = await determineSourceForDate(targetDate, regionId);
+    const todayResponse = await getScheduleToday(channelId);
+    const todayDate = todayResponse?.date ?? null;
 
-    if (!source) {
+    let apiResponse: ScheduleResponse | null = null;
+
+    if (todayDate && targetDate === todayDate) {
+      apiResponse = await getScheduleToday(channelId);
+    } else if (todayDate && targetDate > todayDate) {
+      apiResponse = await getScheduleTomorrow(channelId);
+    } else {
+      apiResponse = await getScheduleForDate(channelId, targetDate);
+    }
+
+    if (!apiResponse) {
       throw new Error(`Дані за ${targetDate} відсутні.`);
     }
 
-    const response = await fetch(source.url);
-    if (!response.ok) throw new Error(`Не вдалося завантажити файл ${source.url}`);
-
-    const dataArray = (await response.json()) as ScheduleJsonPayload;
-    let dayData: ScheduleJsonRow | undefined;
-
-    if (Array.isArray(dataArray)) {
-      dayData = dataArray.find((item) => item.schedule_date === targetDate && item.channel_id === regionId);
-    } else {
-      dayData = dataArray[targetDate];
-    }
-
-    if (!dayData?.schedule) {
-      throw new Error(`Графік для регіону (ID: ${regionId}) на ${targetDate} не знайдено.`);
-    }
-
-    const schedule = dayData.schedule;
-    const requestedGroup = requestData.group;
-    const isEmergency = dayData.emergency_outages ?? false;
-
-    if (!schedule[requestedGroup]) {
+    if (!apiResponse.schedule[requestedGroup]) {
       throw new Error(`Дані для черги ${requestedGroup} відсутні.`);
     }
 
-    const { timeline, stats } = generateExactTimeline(schedule[requestedGroup]);
+    const { timeline, stats } = generateExactTimeline(apiResponse.schedule[requestedGroup]);
 
     return {
-      region: regionId,
+      region: channelId,
       group: requestedGroup,
-      day: targetDate,
+      day: apiResponse.date,
       timeline,
       stats,
-      emergencyOutages: isEmergency,
+      emergencyOutages: apiResponse.emergency_outages,
     };
   } catch (error) {
     console.error('Помилка API:', error);
@@ -78,77 +155,40 @@ export const fetchSchedule = async (requestData: ScheduleRequest): Promise<Sched
 
 export const getCalendarInfo = async (regionId: string): Promise<CalendarInfo> => {
   const info: CalendarInfo = { todayDate: null, availableDates: [] };
+
+  if (!regionId) return info;
+
+  const channelId = Number(regionId);
   const availableDates = new Set<string>();
 
   try {
-    const todayRes = await fetch(FILES.today);
-    if (todayRes.ok) {
-      const data = (await todayRes.json()) as ScheduleJsonRow[];
-      if (Array.isArray(data) && data.length > 0) {
-        info.todayDate = data[0]?.schedule_date ?? null;
-        if (regionId && info.todayDate) {
-          const hasRegion = data.some((d) => d.channel_id === Number(regionId));
-          if (hasRegion) availableDates.add(info.todayDate);
-        }
-      }
+    const todayData = await getScheduleToday(channelId);
+    if (todayData) {
+      info.todayDate = todayData.date;
+      availableDates.add(todayData.date);
     }
-
-    if (!regionId) return { todayDate: info.todayDate, availableDates: [] };
-
-    const rId = Number(regionId);
-
-    try {
-      const tmrRes = await fetch(FILES.tomorrow);
-      if (tmrRes.ok) {
-        const data = (await tmrRes.json()) as ScheduleJsonRow[];
-        if (Array.isArray(data)) {
-          const hasRegion = data.some((d) => d.channel_id === rId);
-          const scheduleDate = data[0]?.schedule_date;
-          if (hasRegion && scheduleDate) availableDates.add(scheduleDate);
-        }
-      }
-    } catch {
-      // Tomorrow schedule is optional.
-    }
-
-    try {
-      const historyUrl = `${FILES.historyBase}${rId}.json`;
-      const histRes = await fetch(historyUrl);
-      if (histRes.ok) {
-        const historyData = (await histRes.json()) as ScheduleJsonRow[];
-        if (Array.isArray(historyData)) {
-          historyData.forEach((item) => {
-            if (item.schedule_date && item.channel_id === rId) availableDates.add(item.schedule_date);
-          });
-        }
-      }
-    } catch {
-      console.warn(`Історія для регіону ${rId} не знайдена.`);
-    }
-
-    return { todayDate: info.todayDate, availableDates: Array.from(availableDates).sort() };
   } catch {
-    return info;
+    /* ignore */
   }
-};
-
-async function determineSourceForDate(date: string, regionId: number): Promise<ScheduleSource> {
-  let todayDate: string | null = null;
 
   try {
-    const res = await fetch(FILES.today);
-    const data = (await res.json()) as ScheduleJsonRow[];
-    if (Array.isArray(data) && data.length > 0) todayDate = data[0]?.schedule_date ?? null;
+    const tomorrowData = await getScheduleTomorrow(channelId);
+    if (tomorrowData) {
+      availableDates.add(tomorrowData.date);
+    }
   } catch {
-    // Fall back to history if today's file cannot be read.
+    /* ignore */
   }
 
-  if (todayDate && date === todayDate) return { type: 'today', url: FILES.today };
-  if (todayDate && date > todayDate) return { type: 'tomorrow', url: FILES.tomorrow };
-  return { type: 'history', url: `${FILES.historyBase}${regionId}.json` };
-}
+  return {
+    todayDate: info.todayDate,
+    availableDates: Array.from(availableDates).sort(),
+  };
+};
 
-const generateExactTimeline = (offRangesStr: string[]): { timeline: TimelineInterval[]; stats: ScheduleStats } => {
+const generateExactTimeline = (
+  offRangesStr: string[],
+): { timeline: TimelineInterval[]; stats: ScheduleStats } => {
   const offIntervals: MinuteInterval[] = offRangesStr.map((range) => {
     const [startStr, endStr] = range.split('-');
     const start = timeToMinutes(startStr ?? '00:00');
@@ -167,7 +207,6 @@ const generateExactTimeline = (offRangesStr: string[]): { timeline: TimelineInte
     if (off.start > currentCursor) {
       timeline.push({ start: minutesToTime(currentCursor), end: minutesToTime(off.start), type: 'on' });
     }
-
     if (off.end > off.start) {
       timeline.push({ start: minutesToTime(off.start), end: minutesToTime(off.end), type: 'off' });
       totalOffMinutes += off.end - off.start;

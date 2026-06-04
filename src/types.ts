@@ -55,3 +55,26 @@ export interface ScheduleJsonRow {
 }
 
 export type ScheduleJsonPayload = ScheduleJsonRow[] | Record<string, ScheduleJsonRow>;
+
+export interface ScheduleResponse {
+  channel_id: number;
+  city_name: string;
+  date: string;
+  time: string;
+  schedule: Record<string, string[]>;
+  emergency_outages: boolean;
+}
+
+export interface StatusResponse {
+  last_update: {
+    timestamp: string | null;
+    status: 'pending' | 'running' | 'success' | 'error';
+    message: string;
+  };
+  parsing_in_progress: boolean;
+  auto_update_interval_minutes: number;
+}
+
+export interface ErrorResponse {
+  error: string;
+}

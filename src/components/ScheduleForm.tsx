@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { Zap } from 'lucide-react';
-import { getCalendarInfo } from '../api/scheduleService';
-import type { CitiesResponse, City, ScheduleJsonRow, ScheduleRequest } from '../types';
+import { getCities, getCalendarInfo, getScheduleToday } from '../api/scheduleService';
+import type { City, ScheduleRequest } from '../types';
 
 interface ScheduleFormProps {
   onSearch: (request: ScheduleRequest) => void;
@@ -25,13 +25,8 @@ const ScheduleForm = ({ onSearch }: ScheduleFormProps) => {
   useEffect(() => {
     const loadCities = async () => {
       try {
-        let response = await fetch('/backend/cities.json');
-        if (!response.ok) response = await fetch('/cities.json');
-
-        if (response.ok) {
-          const data = (await response.json()) as CitiesResponse | City[];
-          setCities(Array.isArray(data) ? data : data.cities ?? []);
-        }
+        const cityList = await getCities();
+        setCities(cityList);
       } catch (error) {
         console.error('Error loading cities:', error);
       }
@@ -80,17 +75,9 @@ const ScheduleForm = ({ onSearch }: ScheduleFormProps) => {
 
     const loadQueues = async () => {
       try {
-        const res = await fetch('/schedule_today.json');
-        const dataArray = (await res.json()) as ScheduleJsonRow[];
-
-        if (!Array.isArray(dataArray)) {
-          setAvailableQueues([]);
-          return;
-        }
-
-        const regionData = dataArray.find((item) => item.channel_id === Number(region));
-        if (regionData?.schedule) {
-          const queues = Object.keys(regionData.schedule).sort((a, b) => parseFloat(a) - parseFloat(b));
+        const todayData = await getScheduleToday(Number(region));
+        if (todayData?.schedule) {
+          const queues = Object.keys(todayData.schedule).sort((a, b) => parseFloat(a) - parseFloat(b));
           setAvailableQueues(queues);
         } else {
           setAvailableQueues([]);
