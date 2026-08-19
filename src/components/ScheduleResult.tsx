@@ -1,5 +1,6 @@
+import { Clock,PieChart, Search } from 'lucide-react';
 import { useState } from 'react';
-import { Search, PieChart, Clock } from 'lucide-react';
+
 import type { ScheduleResultData } from '../types';
 
 interface ScheduleResultProps {
@@ -25,7 +26,7 @@ const ScheduleResultStyles = () => (
 
       .results-wrapper { display: flex; flex-direction: column; gap: 20px; }
 
-      .card {
+      .result-card {
         background: var(--bg-card);
         border-radius: 24px; padding: 30px; box-shadow: var(--shadow);
         position: relative; transition: background 0.3s;
@@ -139,7 +140,7 @@ const ScheduleResult = ({ scheduleData }: ScheduleResultProps) => {
 
   return (
     <div className="results-wrapper">
-      <div className="card chart-card">
+      <div className="result-card chart-card">
         <button
           className="toggle-view-btn"
           onClick={() => setIsClockView(!isClockView)}
@@ -187,7 +188,7 @@ const ScheduleResult = ({ scheduleData }: ScheduleResultProps) => {
         </div>
       </div>
 
-      <div className="card list-card">
+      <div className="result-card list-card">
         <div className="list-header">
           <h2>Графік світла</h2>
           <div className="date-badge">{formatDate(day)}</div>
