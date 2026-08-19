@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react';
 import { TriangleAlert } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+import { fetchSchedule } from './api/scheduleService';
+import Footer from './components/Footer';
 import Header from './components/Header';
 import ScheduleForm from './components/ScheduleForm';
 import ScheduleResult from './components/ScheduleResult';
-import Footer from './components/Footer';
-import { fetchSchedule } from './api/scheduleService';
 import type { ScheduleRequest, ScheduleResultData, Theme } from './types';
 
 function App() {
   const [scheduleData, setScheduleData] = useState<ScheduleResultData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
 
   const [theme, setTheme] = useState<Theme>(() => {
     return localStorage.getItem('app-theme') === 'dark' ? 'dark' : 'light';
@@ -24,19 +26,24 @@ function App() {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
-  const handleSearch = async (formData: ScheduleRequest) => {
+  const runSearch = async (formData: ScheduleRequest) => {
     setIsLoading(true);
     setScheduleData(null);
+    setSearchError('');
 
     try {
-      const data = await fetchSchedule(formData);
-      setScheduleData(data);
-    } catch (error) {
-      console.error("Помилка:", error);
-      alert("Не вдалося завантажити графік для обраної дати.");
+      setScheduleData(await fetchSchedule(formData));
+    } catch (cause) {
+      setSearchError(
+        cause instanceof Error ? cause.message : 'Не вдалося завантажити графік для обраної дати.',
+      );
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSearch = (formData: ScheduleRequest): void => {
+    void runSearch(formData);
   };
 
   return (
@@ -64,6 +71,12 @@ function App() {
             {isLoading ? (
               <div className="loading-state">
                 <div className="spinner"></div>
+              </div>
+            ) : searchError ? (
+              <div className="error-state">
+                <TriangleAlert className="error-icon" size={56} />
+                <h3>Не вдалося показати графік</h3>
+                <p>{searchError}</p>
               </div>
             ) : (
               <ScheduleResult scheduleData={scheduleData} />
@@ -151,6 +164,28 @@ function App() {
           box-sizing: border-box;
           transition: background 0.3s;
         }
+
+        .error-state {
+          width: 100%;
+          min-height: 600px;
+          height: 100%;
+          background: var(--bg-card);
+          border: 2px dashed #ef4444;
+          border-radius: 24px;
+          box-shadow: var(--shadow);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          gap: 14px;
+          padding: 40px;
+          box-sizing: border-box;
+          transition: background 0.3s;
+        }
+        .error-icon { color: #ef4444; }
+        .error-state h3 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+        .error-state p { color: var(--text-secondary); font-size: 1.05rem; max-width: 420px; line-height: 1.5; }
 
         .spinner {
           width: 70px;

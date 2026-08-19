@@ -9,10 +9,6 @@ export interface City {
   name: string;
 }
 
-export interface CitiesResponse {
-  cities?: City[];
-}
-
 export interface ScheduleRequest {
   region: string;
   group: string;
@@ -41,21 +37,6 @@ export interface ScheduleResultData {
   emergencyOutages: boolean;
 }
 
-export interface CalendarInfo {
-  todayDate: string | null;
-  availableDates: string[];
-}
-
-export interface ScheduleJsonRow {
-  channel_id: number;
-  schedule_date?: string;
-  schedule_time?: string;
-  schedule?: Record<string, string[]>;
-  emergency_outages?: boolean;
-}
-
-export type ScheduleJsonPayload = ScheduleJsonRow[] | Record<string, ScheduleJsonRow>;
-
 export interface ScheduleResponse {
   channel_id: number;
   city_name: string;
@@ -73,8 +54,4 @@ export interface StatusResponse {
   };
   parsing_in_progress: boolean;
   auto_update_interval_minutes: number;
-}
-
-export interface ErrorResponse {
-  error: string;
 }

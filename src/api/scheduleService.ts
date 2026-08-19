@@ -1,5 +1,4 @@
 import type {
-  CalendarInfo,
   City,
   ScheduleRequest,
   ScheduleResponse,
@@ -9,105 +8,70 @@ import type {
   TimelineInterval,
 } from '../types';
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
+const BASE = import.meta.env.VITE_API_URL ?? '';
 
 interface MinuteInterval {
   start: number;
   end: number;
 }
 
+const HTTP_NOT_FOUND = 404;
+
+/** Pulls the server's Ukrainian error message when present, else a status label. */
+const readErrorMessage = async (res: Response): Promise<string> => {
+  try {
+    const body = (await res.json()) as { error?: string };
+    if (body.error) return body.error;
+  } catch {
+    // body was not JSON - fall through to the status label
+  }
+  return `HTTP ${res.status}`;
+};
+
 async function apiFetch<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`);
-  if (!res.ok) {
-    let message = `HTTP ${res.status}`;
-    try {
-      const body = (await res.json()) as { error?: string };
-      if (body.error) message = body.error;
-    } catch {
-      /* ignore */
-    }
-    throw new Error(message);
-  }
+  if (!res.ok) throw new Error(await readErrorMessage(res));
   return res.json() as Promise<T>;
 }
 
-let _citiesCache: City[] | null = null;
+/** Same as apiFetch, but treats 404 as "no data" rather than an error. */
+async function apiFetchOrNull<T>(path: string): Promise<T | null> {
+  const res = await fetch(`${BASE}${path}`);
+  if (res.status === HTTP_NOT_FOUND) return null;
+  if (!res.ok) throw new Error(await readErrorMessage(res));
+  return res.json() as Promise<T>;
+}
 
 export async function getCities(): Promise<City[]> {
-  if (_citiesCache) return _citiesCache;
   const data = await apiFetch<{ cities: City[] }>('/api/cities');
-  _citiesCache = data.cities;
-  return _citiesCache;
+  return data.cities;
 }
 
-export async function getScheduleToday(
-  channelId: number,
-  queue?: string,
-): Promise<ScheduleResponse | null> {
+/** Which day to ask for. A concrete date goes to the history endpoint. */
+export type ScheduleWhen = 'today' | 'tomorrow' | { date: string };
+
+const schedulePath = (channelId: number, when: ScheduleWhen): string => {
   const params = new URLSearchParams({ channel_id: String(channelId) });
-  if (queue) params.set('queue', queue);
 
-  const res = await fetch(`${BASE}/api/schedules/today?${params.toString()}`);
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    let message = `HTTP ${res.status}`;
-    try {
-      const body = (await res.json()) as { error?: string };
-      if (body.error) message = body.error;
-    } catch { /* ignore */ }
-    throw new Error(message);
-  }
-  return res.json() as Promise<ScheduleResponse>;
-}
+  if (when === 'today') return `/api/schedules/today?${params.toString()}`;
+  if (when === 'tomorrow') return `/api/schedules/tomorrow?${params.toString()}`;
 
-export async function getScheduleTomorrow(
+  params.set('date', when.date);
+  return `/api/schedules?${params.toString()}`;
+};
+
+/**
+ * Fetches a whole day for one region. Deliberately never filters by queue: the
+ * caller needs every queue to populate its selector, and the server 404s on an
+ * unknown queue rather than returning an empty result.
+ */
+export const getSchedule = (
   channelId: number,
-  queue?: string,
-): Promise<ScheduleResponse | null> {
-  const params = new URLSearchParams({ channel_id: String(channelId) });
-  if (queue) params.set('queue', queue);
-
-  const res = await fetch(`${BASE}/api/schedules/tomorrow?${params.toString()}`);
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    let message = `HTTP ${res.status}`;
-    try {
-      const body = (await res.json()) as { error?: string };
-      if (body.error) message = body.error;
-    } catch { /* ignore */ }
-    throw new Error(message);
-  }
-  return res.json() as Promise<ScheduleResponse>;
-}
-
-export async function getScheduleForDate(
-  channelId: number,
-  date: string,
-  queue?: string,
-): Promise<ScheduleResponse | null> {
-  const params = new URLSearchParams({ channel_id: String(channelId), date });
-  if (queue) params.set('queue', queue);
-
-  const res = await fetch(`${BASE}/api/schedules?${params.toString()}`);
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    let message = `HTTP ${res.status}`;
-    try {
-      const body = (await res.json()) as { error?: string };
-      if (body.error) message = body.error;
-    } catch { /* ignore */ }
-    throw new Error(message);
-  }
-  return res.json() as Promise<ScheduleResponse>;
-}
+  when: ScheduleWhen,
+): Promise<ScheduleResponse | null> => apiFetchOrNull<ScheduleResponse>(schedulePath(channelId, when));
 
 export async function getStatus(): Promise<StatusResponse> {
   return apiFetch<StatusResponse>('/api/status');
-}
-
-export async function triggerUpdate(): Promise<{ status: string; message: string }> {
-  const res = await fetch(`${BASE}/api/update`, { method: 'POST' });
-  return res.json() as Promise<{ status: string; message: string }>;
 }
 
 export const fetchSchedule = async (requestData: ScheduleRequest): Promise<ScheduleResultData> => {
@@ -115,89 +79,85 @@ export const fetchSchedule = async (requestData: ScheduleRequest): Promise<Sched
   const requestedGroup = requestData.group;
   const targetDate = requestData.date;
 
-  try {
-    const todayResponse = await getScheduleToday(channelId);
-    const todayDate = todayResponse?.date ?? null;
+  const todayResponse = await getSchedule(channelId, 'today');
+  const todayDate = todayResponse?.date ?? null;
 
-    let apiResponse: ScheduleResponse | null = null;
-
-    if (todayDate && targetDate === todayDate) {
-      apiResponse = await getScheduleToday(channelId);
-    } else if (todayDate && targetDate > todayDate) {
-      apiResponse = await getScheduleTomorrow(channelId);
-    } else {
-      apiResponse = await getScheduleForDate(channelId, targetDate);
-    }
-
-    if (!apiResponse) {
-      throw new Error(`Дані за ${targetDate} відсутні.`);
-    }
-
-    if (!apiResponse.schedule[requestedGroup]) {
-      throw new Error(`Дані для черги ${requestedGroup} відсутні.`);
-    }
-
-    const { timeline, stats } = generateExactTimeline(apiResponse.schedule[requestedGroup]);
-
-    return {
-      region: channelId,
-      group: requestedGroup,
-      day: apiResponse.date,
-      timeline,
-      stats,
-      emergencyOutages: apiResponse.emergency_outages,
-    };
-  } catch (error) {
-    console.error('Помилка API:', error);
-    throw error;
-  }
-};
-
-export const getCalendarInfo = async (regionId: string): Promise<CalendarInfo> => {
-  const info: CalendarInfo = { todayDate: null, availableDates: [] };
-
-  if (!regionId) return info;
-
-  const channelId = Number(regionId);
-  const availableDates = new Set<string>();
-
-  try {
-    const todayData = await getScheduleToday(channelId);
-    if (todayData) {
-      info.todayDate = todayData.date;
-      availableDates.add(todayData.date);
-    }
-  } catch {
-    /* ignore */
+  let apiResponse: ScheduleResponse | null;
+  if (todayDate && targetDate === todayDate) {
+    apiResponse = todayResponse;
+  } else if (todayDate && targetDate > todayDate) {
+    apiResponse = await getSchedule(channelId, 'tomorrow');
+  } else {
+    apiResponse = await getSchedule(channelId, { date: targetDate });
   }
 
-  try {
-    const tomorrowData = await getScheduleTomorrow(channelId);
-    if (tomorrowData) {
-      availableDates.add(tomorrowData.date);
-    }
-  } catch {
-    /* ignore */
+  if (!apiResponse) {
+    throw new Error(`Дані за ${targetDate} відсутні.`);
   }
+
+  const offRanges = apiResponse.schedule[requestedGroup];
+  if (!offRanges) {
+    throw new Error(`Дані для черги ${requestedGroup} відсутні.`);
+  }
+
+  const { timeline, stats } = generateExactTimeline(offRanges);
 
   return {
-    todayDate: info.todayDate,
-    availableDates: Array.from(availableDates).sort(),
+    region: channelId,
+    group: requestedGroup,
+    day: apiResponse.date,
+    timeline,
+    stats,
+    emergencyOutages: apiResponse.emergency_outages,
   };
+};
+
+const MINUTES_PER_DAY = 1440;
+const PERCENT_SCALE = 100;
+
+/**
+ * Expands one "HH:MM-HH:MM" range into same-day intervals. A range whose end is
+ * earlier than its start crosses midnight and becomes two pieces: the tail of
+ * this day and the head of it. Equal start/end is treated as malformed and
+ * dropped, matching the previous behaviour.
+ */
+const toDayIntervals = (range: string): MinuteInterval[] => {
+  const [startStr, endStr] = range.split('-');
+  const start = timeToMinutes(startStr ?? '00:00');
+  const end = timeToMinutes(endStr ?? '00:00');
+
+  if (end > start) return [{ start, end }];
+  if (end === start) return [];
+
+  const wrapped: MinuteInterval[] = [{ start, end: MINUTES_PER_DAY }];
+  if (end > 0) wrapped.push({ start: 0, end });
+  return wrapped;
+};
+
+/** Collapses sorted, possibly overlapping intervals so no minute is counted twice. */
+const mergeIntervals = (intervals: MinuteInterval[]): MinuteInterval[] => {
+  const merged: MinuteInterval[] = [];
+
+  [...intervals]
+    .sort((a, b) => a.start - b.start)
+    .forEach((interval) => {
+      const last = merged.at(-1);
+      if (last && interval.start <= last.end) {
+        last.end = Math.max(last.end, interval.end);
+        return;
+      }
+      merged.push({ ...interval });
+    });
+
+  return merged;
 };
 
 const generateExactTimeline = (
   offRangesStr: string[],
 ): { timeline: TimelineInterval[]; stats: ScheduleStats } => {
-  const offIntervals: MinuteInterval[] = offRangesStr.map((range) => {
-    const [startStr, endStr] = range.split('-');
-    const start = timeToMinutes(startStr ?? '00:00');
-    let end = timeToMinutes(endStr ?? '00:00');
-    if (end === 0 && start !== 0) end = 1440;
-    return { start, end };
-  });
-
-  offIntervals.sort((a, b) => a.start - b.start);
+  const offIntervals = mergeIntervals(
+    offRangesStr.flatMap(toDayIntervals).filter((interval) => interval.end > interval.start),
+  );
 
   const timeline: TimelineInterval[] = [];
   let currentCursor = 0;
@@ -205,30 +165,39 @@ const generateExactTimeline = (
 
   offIntervals.forEach((off) => {
     if (off.start > currentCursor) {
-      timeline.push({ start: minutesToTime(currentCursor), end: minutesToTime(off.start), type: 'on' });
+      timeline.push({
+        start: minutesToTime(currentCursor),
+        end: minutesToTime(off.start),
+        type: 'on',
+      });
     }
-    if (off.end > off.start) {
-      timeline.push({ start: minutesToTime(off.start), end: minutesToTime(off.end), type: 'off' });
-      totalOffMinutes += off.end - off.start;
-      currentCursor = Math.max(currentCursor, off.end);
-    }
+
+    timeline.push({ start: minutesToTime(off.start), end: minutesToTime(off.end), type: 'off' });
+    totalOffMinutes += off.end - off.start;
+    currentCursor = off.end;
   });
 
-  if (currentCursor < 1440) {
+  if (currentCursor < MINUTES_PER_DAY) {
     timeline.push({ start: minutesToTime(currentCursor), end: '24:00', type: 'on' });
   }
 
-  return { timeline, stats: { totalOffMinutes, percentage: Math.round((totalOffMinutes / 1440) * 100) } };
+  return {
+    timeline,
+    stats: {
+      totalOffMinutes,
+      percentage: Math.round((totalOffMinutes / MINUTES_PER_DAY) * PERCENT_SCALE),
+    },
+  };
 };
 
 const timeToMinutes = (timeStr: string): number => {
-  if (timeStr === '24:00') return 1440;
+  if (timeStr === '24:00') return MINUTES_PER_DAY;
   const [h = 0, m = 0] = timeStr.trim().split(':').map(Number);
   return h * 60 + m;
 };
 
 const minutesToTime = (minutes: number): string => {
-  if (minutes === 1440) return '24:00';
+  if (minutes === MINUTES_PER_DAY) return '24:00';
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
