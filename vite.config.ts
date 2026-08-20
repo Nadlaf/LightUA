@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
@@ -8,7 +9,7 @@ import { fixtureApi } from './dev/fixture-api.ts';
 // https://vite.dev/config/
 export default defineConfig({
   // fixtureApi is dev-only (apply: 'serve'), so it never reaches the production bundle
-  plugins: [react(), fixtureApi()],
+  plugins: [react(), tailwindcss(), fixtureApi()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
