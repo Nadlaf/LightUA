@@ -1,9 +1,29 @@
-import '@/index.css';
+import '@/styles/index.css';
+import '@/i18n';
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { RouterProvider } from 'react-router/dom';
 
-import App from '@/App';
+import { router } from '@/routes';
+
+const MINUTE = 60 * 1000;
+const SCHEDULE_STALE_TIME = 5 * MINUTE;
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // The API answers 404 for a day it has no data for, and "tomorrow" is
+      // legitimately absent for most of the day. Retrying would turn every
+      // region change into five requests with several seconds of backoff before
+      // the week strip fills in.
+      retry: false,
+      staleTime: SCHEDULE_STALE_TIME,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const rootElement = document.getElementById('root');
 
@@ -13,6 +33,8 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
   </StrictMode>,
 );

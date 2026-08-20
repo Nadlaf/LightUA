@@ -38,8 +38,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint
+        run: npm run lint
+
       - name: Build
         run: npm run build
+
+      # GitHub Pages has no SPA rewrite rule. Serving index.html as 404.html
+      # lets the router handle any path it does not have a real file for.
+      - name: Add SPA fallback
+        run: cp dist/index.html dist/404.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
