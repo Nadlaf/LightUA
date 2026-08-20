@@ -24,10 +24,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# AI
-.claude
-CLAUDE.md
-
 # Other
 docs
 

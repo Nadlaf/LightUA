@@ -1,0 +1,25 @@
+{
+  "outputStyle": "explanatory",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash(npm run lint)",
+      "Bash(npm run lint -- *)",
+      "Bash(npm run build)",
+      "Bash(npx tsc -b*)",
+      "Bash(npx eslint *)"
+    ],
+    "deny": [
+      "Read(.env.development)",
+      "Read(.env.production)",
+      "Read(.env.*.local)",
+      "Read(*.session*)",
+      "Grep(.env.development)",
+      "Grep(.env.production)",
+      "Grep(.env.*.local)",
+      "Grep(*.session*)"
+    ]
+  }
+}
