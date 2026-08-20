@@ -3,15 +3,19 @@ import { createBrowserRouter } from 'react-router';
 import App from '@/App';
 
 /**
- * Derived from Vite's `base` so the router and the build config cannot drift.
+ * Vite's `base` verbatim, so the router and the build config cannot drift.
  *
- * The trailing slash is stripped deliberately: React Router preserves it if
- * given, and while basename "/LightUA/" matches the URL "/LightUA/", the
- * pathname "/LightUA" then fails its startsWith check, strips to null, matches
- * no route, and renders a blank page. GitHub Pages normally redirects to add the
- * slash, but relying on a server redirect to cover a config choice is fragile.
+ * The trailing slash must be kept. React Router preserves it deliberately, and
+ * it applies to generated URLs as well as matching: with basename "/LightUA",
+ * navigating to the "/" route emits "/LightUA?region=..." with no slash, which
+ * does not match the server's configured base of "/LightUA/". Reloading such a
+ * URL fails before the app ever boots.
+ *
+ * The slashless pathname is handled a layer down, by the server. GitHub Pages
+ * redirects "/LightUA" to "/LightUA/" for directory paths; Vite's dev server
+ * does not, so dev/base-redirect.ts supplies the same behaviour locally.
  */
-const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+const basename = import.meta.env.BASE_URL;
 
 export const router = createBrowserRouter(
   [
