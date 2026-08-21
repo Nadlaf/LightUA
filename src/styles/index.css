@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+@source not '../../.claude';
+@source not '../../CLAUDE.md';
 
 /* ---------------------------------------------------------------------------
    Palette. These are plain custom properties so the [data-theme] attribute on
