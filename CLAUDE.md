@@ -43,6 +43,10 @@ which package and why.
   `.claude/settings.json`); `.env.example` documents the shape.
 - Do not commit `config.json` or any `*.session*` file. Both are gitignored and relate to the
   removed backend's Telegram credentials.
+- Every interactive element needs the `focus-ring` utility, and every transform-bearing animation
+  needs a `motion-safe:` gate. **Nothing in the toolchain checks either** — `eslint-plugin-jsx-a11y`
+  is peer-capped at ESLint 9 and cannot be installed, so a control added without `focus-ring` is
+  silently unreachable for keyboard users and no lint run will say so.
 
 ## API Clients
 

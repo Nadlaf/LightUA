@@ -33,3 +33,6 @@ docs
 # Backend secrets - must never be committed or published
 config.json
 *.session*
+
+# Local session scratch - resume notes, goes stale immediately, not repo history
+.claude/CHECKPOINT.md

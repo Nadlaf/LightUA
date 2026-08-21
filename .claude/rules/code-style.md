@@ -47,8 +47,13 @@ Enabled rules worth knowing:
   `void`-returning handler is expected. Wrap it: a sync handler that calls `void doAsync()`.
 - **`react-refresh/only-export-components`** via `reactRefresh.configs.vite`.
 
-`eslint-plugin-jsx-a11y` is **not** installed: its peer range stops at ESLint 9 and there is no
-v7. Accessibility is maintained by hand — see below. Revisit if upstream adds ESLint 10 support.
+`eslint-plugin-jsx-a11y` is **not** installed, and this is a rejection rather than an oversight.
+Latest is 6.10.2 and its peer range is `eslint ^3 || … || ^9`, against this repo's `eslint ^10.8.1`.
+It does not degrade to a warning — `npm i` fails `ERESOLVE`, so landing it needs a committed
+`overrides` entry, and the Pages workflow's `npm ci` is strict about exactly that. That is a
+permanent forced-peer entry plus a live CI failure mode in exchange for enforcing rules the manual
+pass already covers. Accessibility is maintained by hand — see below. Revisit only if upstream
+ships real ESLint 10 support; do not force it with `overrides`.
 
 ## TypeScript
 
@@ -75,8 +80,24 @@ v7. Accessibility is maintained by hand — see below. Revisit if upstream adds 
 - **Never add a plain unlayered CSS class for layout.** Unlayered CSS outranks every `@layer` rule
   regardless of specificity or order, so it silently beats utilities. A `.container` class doing
   `padding: 0 20px` once zeroed the vertical padding utilities on the same element. Use `@utility`
-  (see `page-container`).
+  (see `page-container` and `focus-ring`).
 - `::backdrop` does not reliably inherit custom properties — keep its colours literal.
+- **`@theme inline` tokens cannot be overridden in a media query.** `inline` copies the literal
+  value into the generated utility instead of leaving a `var()` reference to the theme variable, so
+  reassigning `--animate-modal-in` under `@media (prefers-reduced-motion)` does nothing at all. Add
+  a second token and switch between them by variant — which is why `--animate-fade-in` exists.
+  (Palette tokens still flip, because *their* values are themselves `var()` references.)
+- **Class names written in documentation become real CSS.** Tailwind v4's automatic source detection
+  scans every tracked non-ignored file, markdown included, so a class merely *quoted* in a rule file
+  or in `CLAUDE.md` gets generated and shipped. This bit exactly once: an anti-pattern example
+  reading `motion-reduce:hover:scale-100` put a `.motion-reduce\:hover\:scale-100:hover` rule in the
+  production bundle even though `scale-100` appears nowhere in `src/`. `index.css` therefore carries
+  `@source not '../../.claude'` and `@source not '../../CLAUDE.md'` — 1.19 kB of dead CSS removed.
+  Keep those lines. Without them a style guide cannot name a class without shipping it.
+- **Gate motion with `motion-safe:`, not `motion-reduce:`.** Both are built in. Prefer
+  `motion-safe:hover:scale-105` over `hover:scale-105 motion-reduce:hover:scale-100` — gating one
+  rule beats undoing it. Only transforms need gating; colour and opacity transitions are fine as-is,
+  which is why the many `transition-colors` / `transition-[background]` sites are untouched.
 
 ## Components
 
@@ -100,3 +121,13 @@ Maintained by hand, since `jsx-a11y` cannot run. When touching UI:
 - toggle buttons need `aria-pressed`; groups need `role="group"` with a label
 - prefer the native element that already behaves correctly — `Modal` uses `<dialog>` for Escape,
   focus trapping and focus restoration rather than reimplementing them
+- **give every interactive element the `focus-ring` utility.** It is the single source of focus
+  styling — do not hand-roll `focus-visible:` utilities per component, and never reintroduce
+  `outline-none` (that is what left the selects with a colour-only cue, failing WCAG 1.4.11). Most
+  buttons inherit it through `Button`'s `BASE`; anything not routed through `Button` — a native
+  `<button>`, `<select>` or `<a>` — needs the class directly.
+- **gate transform-bearing animation behind `motion-safe:`**, with an opacity-only fallback. The
+  spinner is the deliberate exception: `animate-spin` stays ungated because it is the app's only
+  visual loading signal and a static ring reads as broken.
+- `role="status"` is on **both** `Spinner` and `EmergencyBanner`, so it is not a usable selector for
+  a spinner-specific rule.

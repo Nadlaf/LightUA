@@ -109,6 +109,9 @@ rather than sent to the API, so a mistyped shared link shows the empty state ins
 No layout routes. `App.tsx` is the shell: `Header`, the page, `Footer`, in a flex column with
 `min-h-screen`. Horizontal gutters come from the `page-container` utility.
 
+`page-container` and `focus-ring` are the only two custom `@utility` rules, both declared in
+`styles/index.css`. `focus-ring` owns all focus styling in the app.
+
 ## Internationalization
 
 Ukrainian only, but all copy is centralised.
