@@ -91,6 +91,7 @@
 
   --animate-modal-in: modal-in 0.2s ease-out;
   --animate-slide-down: slide-down 0.3s ease-out;
+  --animate-fade-in: fade-in 0.2s ease-out;
 }
 
 /* Drive the dark variant off the attribute rather than prefers-color-scheme, so
@@ -122,6 +123,15 @@
   padding-inline: 20px;
 }
 
+@utility focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+
+  &:focus-visible {
+    outline-color: var(--primary);
+  }
+}
+
 @keyframes modal-in {
   from {
     transform: scale(0.95);
@@ -141,6 +151,15 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
