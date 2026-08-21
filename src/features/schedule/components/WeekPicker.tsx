@@ -38,7 +38,7 @@ const WeekPicker = ({ dates, availableDates, selectedDate, onSelect }: WeekPicke
                 day: 'numeric',
                 month: 'long',
               })}
-              className={`flex size-[42px] cursor-pointer items-center justify-center rounded-full border-none text-[0.9rem] font-medium transition-all ${
+              className={`focus-ring flex size-[42px] cursor-pointer items-center justify-center rounded-full border-none text-[0.9rem] font-medium transition-all ${
                 isSelected
                   ? 'bg-primary text-white shadow-[0_4px_10px_rgb(59_130_246/0.4)]'
                   : 'bg-element text-muted'

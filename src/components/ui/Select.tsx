@@ -25,7 +25,7 @@ const Select = ({ label, placeholder, options, className, ...rest }: SelectProps
       <div className="relative">
         <select
           id={id}
-          className={`w-full cursor-pointer appearance-none rounded-xl border border-edge bg-card px-4 py-3.5 text-base text-main outline-none transition-[border-color,background] duration-200 focus:border-primary disabled:cursor-not-allowed disabled:bg-element disabled:text-muted ${className ?? ''}`}
+          className={`focus-ring w-full cursor-pointer appearance-none rounded-xl border border-edge bg-card px-4 py-3.5 text-base text-main transition-[border-color,background] duration-200 focus:border-primary disabled:cursor-not-allowed disabled:bg-element disabled:text-muted ${className ?? ''}`}
           {...rest}
         >
           <option value="">{placeholder}</option>

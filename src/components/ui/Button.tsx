@@ -11,7 +11,7 @@ interface ButtonProps extends ComponentProps<'button'> {
 }
 
 const BASE =
-  'inline-flex cursor-pointer items-center justify-center transition-colors disabled:cursor-not-allowed';
+  'focus-ring inline-flex cursor-pointer items-center justify-center transition-colors disabled:cursor-not-allowed';
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary:

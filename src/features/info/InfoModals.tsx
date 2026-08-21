@@ -16,7 +16,7 @@ const ICON_WRAPPER =
   'mb-[15px] flex size-[60px] items-center justify-center rounded-full bg-element';
 const CENTERED = 'flex flex-col items-center text-center';
 const LINK_AS_PRIMARY_BUTTON =
-  'inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-[10px] bg-primary px-6 py-2.5 font-semibold text-white no-underline transition-colors hover:bg-primary-hover';
+  'focus-ring inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-[10px] bg-primary px-6 py-2.5 font-semibold text-white no-underline transition-colors hover:bg-primary-hover';
 
 interface InfoModalsProps {
   activeModal: ActiveModal;
@@ -67,7 +67,7 @@ const InfoModals = ({ activeModal, onClose }: InfoModalsProps) => {
                 href={contact.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2.5 rounded-xl bg-element p-3 font-medium text-main no-underline transition-colors hover:bg-element-hover hover:text-primary"
+                className="focus-ring flex items-center gap-2.5 rounded-xl bg-element p-3 font-medium text-main no-underline transition-colors hover:bg-element-hover hover:text-primary"
               >
                 <Send size={18} /> {contact.handle}
               </a>
