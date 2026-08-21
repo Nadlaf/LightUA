@@ -53,7 +53,7 @@ const Header = ({ theme, toggleTheme }: HeaderProps) => {
               onClick={toggleTheme}
               title={themeLabel}
               aria-label={themeLabel}
-              className="size-10 rounded-full border border-edge bg-element text-main transition-all hover:scale-105 hover:border-primary"
+              className="size-10 rounded-full border border-edge bg-element text-main transition-all hover:border-primary motion-safe:hover:scale-105"
             >
               {theme === 'light' ? <Moon size={20} /> : <Sun size={20} className="text-accent" />}
             </Button>

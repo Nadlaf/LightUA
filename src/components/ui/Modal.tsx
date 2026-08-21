@@ -70,7 +70,7 @@ const ModalRoot = ({ isOpen, onClose, children }: ModalProps) => {
       onCancel={handleNativeDismiss}
       onClose={handleNativeDismiss}
       aria-labelledby={titleId}
-      className="m-auto w-[90%] max-w-[400px] animate-modal-in rounded-[20px] bg-card p-0 text-main shadow-card"
+      className="m-auto w-[90%] max-w-[400px] rounded-[20px] bg-card p-0 text-main shadow-card motion-safe:animate-modal-in motion-reduce:animate-fade-in"
     >
       <ModalContext value={{ onClose, titleId }}>
         <div className="relative p-[30px]">
