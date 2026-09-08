@@ -91,8 +91,10 @@ fixtures/               JSON served by the dev fixture API; not published
 
 Hand-written and safe to edit — nothing here is generated.
 
-- `api/types.ts` — server DTOs, **snake_case preserved**, mirroring the wire format. These mirror
-  what the network actually returns, not any in-repo backend definition.
+- `api/models/` — server DTOs, one interface per file (`cityDto.ts`, `scheduleResponseDto.ts`, …),
+  re-exported from `api/models/index.ts`. Import from `@/api/models`, never from a member file.
+  **snake_case preserved**, mirroring the wire format: these mirror what the network actually
+  returns, not any in-repo backend definition.
 - `api/http.ts` — `apiFetch` / `apiFetchOrNull`, `ApiError` with a machine-readable `code`.
 - `api/schedules.ts` — endpoint functions. One `getSchedule(channelId, when)` covers today,
   tomorrow and a historical date via `ScheduleWhen`.

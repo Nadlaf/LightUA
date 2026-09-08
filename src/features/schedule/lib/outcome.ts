@@ -1,4 +1,4 @@
-import type { ScheduleResponseDto } from '@/api/types';
+import type { ScheduleResponseDto } from '@/api/models';
 
 import type { ScheduleOutcome, ScheduleSearch } from '../types';
 import { buildTimeline } from './timeline';

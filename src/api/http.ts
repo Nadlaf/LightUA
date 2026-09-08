@@ -1,4 +1,4 @@
-import type { ErrorResponseDto } from './types';
+import type { ErrorResponseDto } from './models';
 
 const BASE = import.meta.env.VITE_API_URL ?? '';
 

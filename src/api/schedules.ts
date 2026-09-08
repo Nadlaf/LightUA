@@ -1,5 +1,5 @@
 import { apiFetch, apiFetchOrNull } from './http';
-import type { CitiesResponseDto, CityDto, ScheduleResponseDto, StatusResponseDto } from './types';
+import type { CitiesResponseDto, CityDto, ScheduleResponseDto, StatusResponseDto } from './models';
 
 /** Which day to ask for. A concrete date routes to the history endpoint. */
 export type ScheduleWhen = 'today' | 'tomorrow' | { date: string };
