@@ -1,4 +1,4 @@
-import { queryOptions } from '@tanstack/react-query';
+import { queryOptions, skipToken } from '@tanstack/react-query';
 
 import type { ScheduleWhen } from './schedules';
 import { getCities, getSchedule, whenToKey } from './schedules';
@@ -8,7 +8,7 @@ const SCHEDULE_STALE_TIME = 5 * MINUTE;
 
 export const queryKeys = {
   cities: () => ['cities'] as const,
-  schedule: (channelId: number, when: ScheduleWhen) =>
+  schedule: (channelId: number | null, when: ScheduleWhen) =>
     ['schedule', channelId, whenToKey(when)] as const,
 };
 
@@ -26,8 +26,7 @@ export const citiesQuery = () =>
  */
 export const scheduleQuery = (channelId: number | null, when: ScheduleWhen) =>
   queryOptions({
-    queryKey: queryKeys.schedule(channelId ?? 0, when),
-    queryFn: () => getSchedule(channelId ?? 0, when),
+    queryKey: queryKeys.schedule(channelId, when),
+    queryFn: channelId === null ? skipToken : () => getSchedule(channelId, when),
     staleTime: SCHEDULE_STALE_TIME,
-    enabled: channelId !== null,
   });

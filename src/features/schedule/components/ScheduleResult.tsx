@@ -1,9 +1,9 @@
-import { Clock, PieChart, Search } from 'lucide-react';
-import { useState } from 'react';
+import { Clock, PieChart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import EmptyState from '@/components/ui/EmptyState';
 
 import type { ChartView, DaySchedule } from '../types';
 import ClockChart from './ClockChart';
@@ -12,21 +12,9 @@ import IntervalList from './IntervalList';
 
 interface ScheduleResultProps {
   schedule: DaySchedule | null;
+  view: ChartView;
+  onToggleView: () => void;
 }
-
-const EmptyState = () => {
-  const { t } = useTranslation();
-
-  return (
-    <div className="flex size-full min-h-[600px] items-center justify-center rounded-3xl border-2 border-dashed border-primary bg-card p-10 text-center shadow-card">
-      <div className="flex max-w-[320px] flex-col items-center">
-        <Search className="mb-[30px] size-[150px] stroke-[2.5] text-main opacity-90" />
-        <h3 className="mb-4 text-[1.8rem] font-extrabold text-main">{t('result.emptyTitle')}</h3>
-        <p className="text-[1.05rem] leading-relaxed text-muted">{t('result.emptyDescription')}</p>
-      </div>
-    </div>
-  );
-};
 
 const Legend = () => {
   const { t } = useTranslation();
@@ -45,11 +33,12 @@ const Legend = () => {
   );
 };
 
-const ScheduleResult = ({ schedule }: ScheduleResultProps) => {
+const ScheduleResult = ({ schedule, view, onToggleView }: ScheduleResultProps) => {
   const { t } = useTranslation();
-  const [view, setView] = useState<ChartView>('donut');
 
-  if (!schedule) return <EmptyState />;
+  if (!schedule) {
+    return <EmptyState title={t('result.emptyTitle')} message={t('result.emptyDescription')} />;
+  }
 
   const isClock = view === 'clock';
   const toggleLabel = isClock ? t('result.showDonut') : t('result.showClock');
@@ -59,7 +48,7 @@ const ScheduleResult = ({ schedule }: ScheduleResultProps) => {
       <Card className="relative">
         <Button
           variant="icon"
-          onClick={() => setView(isClock ? 'donut' : 'clock')}
+          onClick={onToggleView}
           title={toggleLabel}
           aria-label={toggleLabel}
           className="absolute right-5 top-5 z-10 size-10 rounded-xl border border-edge bg-element text-muted transition-all hover:border-primary hover:text-primary"

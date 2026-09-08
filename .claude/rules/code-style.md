@@ -59,8 +59,11 @@ ships real ESLint 10 support; do not force it with `overrides`.
 
 - `strict`, plus `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`,
   `noUncheckedSideEffectImports`.
-- Two projects: `tsconfig.app.json` (`src`, DOM libs) and `tsconfig.node.json` (`vite.config.ts`
-  and `dev/**`, Node types, no DOM). `tsc -b` builds both.
+- Three projects: `tsconfig.app.json` (`src`, DOM libs, test files excluded),
+  `tsconfig.node.json` (`vite.config.ts` and `dev/**`, Node types, no DOM) and
+  `tsconfig.test.json` (`src/**/*.test.ts`, Node types, `allowImportingTsExtensions`). `tsc -b`
+  builds all three. The test project exists so `node:test` imports and `.ts` import specifiers
+  stay out of the app's type environment.
 - No `baseUrl` — deprecated in TS 6, removed in TS 7. `paths` works standalone.
 - Model expected-but-empty outcomes as values (discriminated unions), not exceptions. Reserve
   `Error` subclasses for genuine faults.
@@ -75,8 +78,15 @@ ships real ESLint 10 support; do not force it with `overrides`.
   on a token.** Reserve the `dark:` variant for genuine one-offs.
 - Preserve exact original values with arbitrary syntax (`text-[1.05rem]`, `size-[42px]`) rather
   than snapping to the nearest scale step, unless a visual change is intended.
-- Layout breakpoints are `min-[900px]:` and `min-[1100px]:`, matching the original design — not
-  Tailwind's `md:`/`lg:`.
+- **Use the named breakpoints; there are no arbitrary `min-[…]:` variants left in `src/`.** The
+  scale is redefined in a plain `@theme` block in `index.css` to the values this design actually
+  uses: `xs` 425, `sm` 768, `md` 1024, `lg` 1440, `xl` 2560. `2xl` is removed
+  (`--breakpoint-2xl: initial`) because its 1536px default would sit *below* `lg` and silently apply
+  at a narrower width; an accidental `2xl:` therefore generates nothing rather than misbehaving.
+  Breakpoints must live in `@theme`, not `@theme inline` — the variant generator reads
+  `--breakpoint-*` from real theme variables, and `inline` would copy literals into utilities.
+  Note `page-container` caps width at 1440px, exactly `lg`, so above that breakpoint the container
+  is fixed rather than fluid.
 - **Never add a plain unlayered CSS class for layout.** Unlayered CSS outranks every `@layer` rule
   regardless of specificity or order, so it silently beats utilities. A `.container` class doing
   `padding: 0 20px` once zeroed the vertical padding utilities on the same element. Use `@utility`
@@ -94,10 +104,44 @@ ships real ESLint 10 support; do not force it with `overrides`.
   production bundle even though `scale-100` appears nowhere in `src/`. `index.css` therefore carries
   `@source not '../../.claude'` and `@source not '../../CLAUDE.md'` — 1.19 kB of dead CSS removed.
   Keep those lines. Without them a style guide cannot name a class without shipping it.
+  **Test files are the same hazard.** An assertion message reading `'touching ranges must collapse
+  into one segment'` put `.collapse{visibility:collapse}` in the production bundle — any bare word
+  that happens to be a Tailwind utility (`collapse`, `contents`, `grid`, `table`, `fixed`, `truncate`,
+  `visible`) does this from a plain English string. Hence `@source not '../**/*.test.*'`. Prose in a
+  test name is not inert. The same applied to `.github/workflows/*.yml`, where the `contents: read`
+  permission line emitted `.contents{display:contents}`; `@source not '../../.github'` closes that.
+- **Prose in a `src/` comment is the same hazard, and there is no `@source not` escape for it** —
+  source files must be scanned, so this one can only be avoided by wording. A JSDoc line in
+  `Button.tsx` reading "declares no transition … with a hover colour or transform" emitted
+  `.transition{…}` and `.transform{…}`, adding ~950 bytes to the bundle. `.transition` in
+  particular is expensive: it expands to the whole default property list plus its `--tw-*`
+  declarations. When a comment must name a utility, name a **real one that already exists in the
+  file** (`transition-colors`, `motion-safe:hover:scale-105`) rather than the bare namespace word.
+  Check `dist/assets/*.css` byte size after editing comments — a jump means prose leaked.
 - **Gate motion with `motion-safe:`, not `motion-reduce:`.** Both are built in. Prefer
   `motion-safe:hover:scale-105` over `hover:scale-105 motion-reduce:hover:scale-100` — gating one
   rule beats undoing it. Only transforms need gating; colour and opacity transitions are fine as-is,
   which is why the many `transition-colors` / `transition-[background]` sites are untouched.
+- **A variant must not declare a property a caller is expected to override.** `Button` composes
+  `BASE` + `VARIANTS[variant]` + a caller's `className` by string concatenation with no conflict
+  resolution (no `tailwind-merge`). When two classes set the same property, the one Tailwind emits
+  later in `@layer utilities` wins — and **that order is Tailwind's own internal candidate
+  ordering, which you cannot derive from the class string.** Do not try. It is neither alphabetical
+  nor numeric in general: this bundle emits `transition-[background] · transition-all ·
+  transition-colors` (which happens to match ASCII) but `py-1.5 · py-2.5 · py-3 · py-3.5 · py-4 ·
+  py-10 · py-[15px]` (numeric, then arbitrary — ASCII would put `py-10` second). Whoever wins is
+  therefore an accident, not a decision.
+  Two concrete traps this produced: `bg-transparent` in a variant is redundant against Preflight's
+  own `background-color: transparent` on buttons, so it did nothing but defeat a caller's `bg-*`;
+  and `transition-colors` in `BASE` silently beat callers' `transition-all`, which stripped
+  `transform` from the transition and made `motion-safe:hover:scale-105` snap. You cannot fix that
+  second one from the call site — no `transition-[…]` spelling reliably out-ranks it. Remove the
+  property from the variant instead.
+  **Caveat — this rule is not fully satisfied today.** `primary` and `secondary` still declare
+  `px-6 py-2.5 rounded-[10px]`, and `ScheduleForm`'s submit button overrides two of the three. It
+  works, but by the same accident. Hoisting padding out of `primary` would force every primary
+  caller to redeclare it, which is worse for a component whose job is a finished look — so the
+  exposure is accepted and recorded rather than fixed.
 
 ## Components
 

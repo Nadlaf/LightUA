@@ -40,6 +40,12 @@ export default defineConfig([
     },
   },
   {
+    // node:test's test/suite/describe/it all return Promise<void>, so every
+    // top-level call in a test file is a floating promise.
+    files: ['src/**/*.test.ts'],
+    rules: { '@typescript-eslint/no-floating-promises': 'off' },
+  },
+  {
     // Dev tooling and config run in Node, not the browser.
     files: ['dev/**/*.ts', 'vite.config.ts'],
     languageOptions: {

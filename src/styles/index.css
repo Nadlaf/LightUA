@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 @source not '../../.claude';
 @source not '../../CLAUDE.md';
+@source not '../**/*.test.*';
+@source not '../../.github';
 
 /* ---------------------------------------------------------------------------
    Palette. These are plain custom properties so the [data-theme] attribute on
@@ -57,6 +59,23 @@
   --status-green-text: #6ee7b7;
   --status-red-bg: #7f1d1d;
   --status-red-text: #fca5a5;
+}
+
+/* ---------------------------------------------------------------------------
+   Breakpoints. A plain @theme block, not `inline`: the variant generator reads
+   --breakpoint-* from real theme variables. Redefined to the values this design
+   actually uses, so every responsive utility can be a named variant and no
+   arbitrary min-[...] remains. 2xl is removed rather than kept, because its
+   1536px default would sit below lg and silently apply at a narrower width.
+   --------------------------------------------------------------------------- */
+
+@theme {
+  --breakpoint-xs: 425px;
+  --breakpoint-sm: 768px;
+  --breakpoint-md: 1024px;
+  --breakpoint-lg: 1440px;
+  --breakpoint-xl: 2560px;
+  --breakpoint-2xl: initial;
 }
 
 /* ---------------------------------------------------------------------------

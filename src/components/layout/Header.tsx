@@ -31,7 +31,7 @@ const Header = ({ theme, toggleTheme }: HeaderProps) => {
         <div className="page-container flex items-center justify-between">
           <div className="flex items-center gap-2 text-[1.25rem] font-bold text-main">
             <Zap size={24} className="-rotate-10 text-accent" fill="currentColor" />
-            <span>{t('app.name')}</span>
+            <h1>{t('app.name')}</h1>
           </div>
 
           <div className="flex items-center gap-5">

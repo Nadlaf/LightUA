@@ -13,8 +13,36 @@
 | HTTP | hand-written `fetch` wrapper — no Axios |
 | i18n | `i18next` + `react-i18next` |
 | Icons | `lucide-react` v1 (brand icons removed in v1; `GithubIcon` is a local inline SVG) |
+| Tests | Node's built-in runner (`node --test` via `npm test`) — no dependency added |
 
-There is no test runner, no forms library, no auth, and no global state container.
+There is no forms library, no auth, and no global state container.
+
+### Test scope
+
+`npm test` runs `node --test "src/**/*.test.ts"`. Node strips the types itself, so nothing is
+installed and nothing is compiled first. **This needs Node ≥ 22.18** (unflagged type stripping);
+on Node 20 the suite dies with an opaque syntax error, which is why `package.json` records an
+`engines.node` floor and the Pages workflow pins 24. The glob is quoted deliberately: bash's
+`globstar` is off by default, so an unquoted `src/**/*.test.ts` collapses to one directory level
+and would silently run a subset. Two consequences shape what can be tested:
+a type-only import is erased without being resolved, but an extensionless *value* import fails at
+runtime with `ERR_MODULE_NOT_FOUND`. Test files therefore import the module under test with an
+explicit `.ts` extension, and **only leaf modules — pure functions in a `lib/` directory with no
+runtime imports — are testable this way.**
+
+That is the whole scope, and it is a boundary rather than a starting point: `lib/timeline.ts` and
+`lib/date.ts` are covered, and nothing else is. Components, hooks, the API layer and routing are
+deliberately untested — which is why there is no jsdom, no component testing library and no
+Vitest. Testing anything that renders would mean adopting all three plus a compile step; treat
+that as a decision to raise, not a gap to quietly fill.
+
+Inputs are inlined in the test files. Nothing is imported from `fixtures/` — that would need
+`resolveJsonModule` plus Node import attributes, and would couple a unit test to a regenerable
+fixture. `eslint.config.js` turns `@typescript-eslint/no-floating-promises` off for
+`src/**/*.test.ts`, because `describe`/`it` both return `Promise<void>` and `npm run lint` runs
+ahead of the build in CI. Test files live in their own TypeScript project, `tsconfig.test.json`,
+which is referenced from the root `tsconfig.json` and excluded from `tsconfig.app.json`. Like
+`tsconfig.node.json` it sets `allowImportingTsExtensions`, which the app project does not.
 
 ## Path alias
 
@@ -23,6 +51,11 @@ There is no test runner, no forms library, no auth, and no global state containe
 - `tsconfig.app.json` → `compilerOptions.paths` (standalone `paths`, no `baseUrl` — `baseUrl` is
   deprecated in TS 6 and removed in TS 7)
 - `vite.config.ts` → `resolve.alias`
+
+`tsconfig.test.json` deliberately declares **no** `paths`. Tests run under `node --test` with no
+bundler, so `@/…` would type-check and then fail at runtime with `ERR_MODULE_NOT_FOUND`. Omitting
+the mapping makes the type checker enforce the runtime's actual resolution rules; test files use
+relative imports with an explicit `.ts` extension.
 
 Use `@/…` for cross-feature imports; relative paths within a feature are fine.
 
@@ -71,7 +104,19 @@ unfiltered request is what makes `(region, day)` a complete cache key. Adding a 
 without putting it in the key would collide two queues onto one cache entry; putting it in the key
 would forfeit the sharing that makes a search cost zero requests.
 
-Domain conversion (DTO → model) happens in feature hooks via TanStack's `select`, not in `api/`.
+Domain conversion (DTO → model) happens in a **pure mapper under the feature's `lib/`**, not in
+`api/` and not inside the hook. `features/schedule/lib/outcome.ts` exports
+`toScheduleOutcome(dto, search)`, and `useDaySchedule` calls it during render once the query has
+succeeded. TanStack's `select` is deliberately **not** used: its purpose is subscription narrowing,
+and every consumer here reads the whole result. Because the mapper is an ordinary function it can
+be read and reasoned about without a query in scope.
+
+`useDaySchedule(search)` takes the submitted search and nothing else — it calls `useRegionDays`
+itself, so no caller has to know which endpoint a date routes to. That call adds no request: it is
+built on the same `scheduleQuery` options and shares the `(region, day)` cache entry.
+`toScheduleOutcome` re-checks the served `date` against the requested one, because a future date
+routes to the *tomorrow* endpoint and would otherwise render tomorrow's schedule under the wrong
+day.
 
 ## State management
 
@@ -80,7 +125,14 @@ Domain conversion (DTO → model) happens in feature hooks via TanStack's `selec
 - **Draft form input:** local `useState` inside `ScheduleForm`. The submit button is what promotes
   a draft into the URL, which is why the result panel does not react to every keystroke.
 - **Theme:** `useTheme()` in `lib/theme.ts` — `localStorage` if the user has chosen, otherwise
-  `prefers-color-scheme` with a `matchMedia` listener.
+  `prefers-color-scheme` with a `matchMedia` listener. A blocking inline script in `index.html`
+  applies the same rule before first paint, because the effect runs after it and dark-mode users
+  would otherwise see a light flash. **The duplicated part that matters is the precedence rule — a
+  stored choice wins, else follow the OS — not the two string literals.** If the two sides ever
+  disagree on precedence the flash silently returns, so change them together.
+- **Chart view:** `useState` in `SchedulePage`, not in `ScheduleResult`. `renderPanel` returns a
+  different element type while loading, so the panel unmounts and any state owned inside it is
+  discarded — the user's donut/clock choice would reset on every uncached day.
 
 `QueryClient` defaults live in `main.tsx`: **`retry: false`** — the tomorrow endpoint legitimately
 404s for most of the day, and retrying turned every region change into five requests with seconds
@@ -145,7 +197,7 @@ No toasts. Failures render in place:
 
 Never use `alert()`, and never `console.*` (ESLint `no-console` is an error). Both existed before
 and hid real failures. Missing data is modelled as a value (`ScheduleOutcome`), not thrown —
-throwing inside a TanStack `select` is not a documented error path.
+`toScheduleOutcome` is total, and throwing during render is not an error path the UI can catch.
 
 ## Query keys
 

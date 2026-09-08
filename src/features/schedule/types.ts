@@ -8,12 +8,6 @@ export interface TimelineInterval {
   type: TimelineIntervalType;
 }
 
-/** Internal to timeline construction: an interval in minutes from midnight. */
-export interface MinuteInterval {
-  start: number;
-  end: number;
-}
-
 export interface ScheduleStats {
   totalOffMinutes: number;
   percentage: number;
@@ -36,12 +30,17 @@ export type ScheduleUnavailableReason =
   | { kind: 'noDataForDate'; date: string }
   | { kind: 'noDataForQueue'; queue: string };
 
-export class ScheduleUnavailableError extends Error {
-  readonly reason: ScheduleUnavailableReason;
-
-  constructor(reason: ScheduleUnavailableReason) {
-    super(reason.kind);
-    this.name = 'ScheduleUnavailableError';
-    this.reason = reason;
-  }
+export interface ScheduleSearch {
+  channelId: number;
+  queue: string;
+  date: string;
 }
+
+/**
+ * Missing data is an expected outcome, not an exception, so it is modelled as a
+ * value. `toScheduleOutcome` is total for the same reason: it runs during render,
+ * so a throw would surface there instead of as `query.error`.
+ */
+export type ScheduleOutcome =
+  | { status: 'ok'; schedule: DaySchedule }
+  | { status: 'unavailable'; reason: ScheduleUnavailableReason };

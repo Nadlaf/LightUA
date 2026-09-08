@@ -15,7 +15,10 @@ maintained separately and is not present here.
 ## Commands
 
 - `npm run lint` — run after every source change.
-- `npx tsc -b` — type-check both projects (`src` and `dev`). Faster than a full build.
+- `npm test` — Node's built-in runner over `src/**/*.test.ts`. No dependency, no compile step.
+  Covers only leaf pure functions in `lib/`; see the test-scope section of
+  `.claude/rules/architecture.md` before adding one anywhere else.
+- `npx tsc -b` — type-check all three projects (`src`, `dev`, tests). Faster than a full build.
 - `npm run build` — runs `tsc -b && vite build`. Run before declaring a change complete.
 
 Ask before running, because they start servers:
@@ -34,10 +37,15 @@ which package and why.
 - Vite's `base` and the router's `basename` must stay in sync, and the **trailing slash must be
   kept**. `basename` applies to generated URLs as well as matching; stripping it emits
   `/LightUA?...`, which does not match the configured base and breaks on reload.
-- `src/features/schedule/lib/timeline.ts` has no test coverage and no visual signal for wrong
-  output — a wrong percentage looks plausible. Before changing it, recompute the schedule
-  percentage, interval count and first/last interval for a few known region+queue+day
-  combinations and compare. Treat `24:00`↔`1440` and the midnight-crossing branch as load-bearing.
+- `src/features/schedule/lib/timeline.ts` has no visual signal for wrong output — a wrong
+  percentage looks plausible. It is now covered by `src/features/schedule/lib/timeline.test.ts`
+  (`npm test`): run it before and after any change to that file. The suite pins three known-good
+  region+queue schedules by total off-minutes, percentage and segment count, so a regression fails
+  loudly instead of rendering a believable wrong answer. Treat `24:00`↔`1440`, the
+  midnight-crossing branch and the `start <= last.end` adjacent-merge predicate as load-bearing —
+  each has a test that exists specifically to catch it. Note the function still performs no domain
+  validation: out-of-range input such as `25:00-26:00` is accepted and can push `percentage`
+  above 100.
 - Never add `Co-Authored-By` trailers to commit messages.
 - `.env.development` and `.env.production` are runtime config. Do not read them (see
   `.claude/settings.json`); `.env.example` documents the shape.

@@ -8,9 +8,6 @@ import { RouterProvider } from 'react-router/dom';
 
 import { router } from '@/routes';
 
-const MINUTE = 60 * 1000;
-const SCHEDULE_STALE_TIME = 5 * MINUTE;
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -19,7 +16,6 @@ const queryClient = new QueryClient({
       // region change into five requests with several seconds of backoff before
       // the week strip fills in.
       retry: false,
-      staleTime: SCHEDULE_STALE_TIME,
       refetchOnWindowFocus: false,
     },
   },

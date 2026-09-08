@@ -2,6 +2,19 @@
 <html lang="uk">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      try {
+        const stored = localStorage.getItem('app-theme');
+        let theme;
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch {
+      }
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>СвітлоUA — графік відключень світла</title>

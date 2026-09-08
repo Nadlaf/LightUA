@@ -8,11 +8,24 @@ const DARK_QUERY = '(prefers-color-scheme: dark)';
 const isTheme = (value: string | null): value is Theme => value === 'light' || value === 'dark';
 
 /** Stored choice wins; otherwise follow the OS. */
-const initialTheme = (): Theme => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (isTheme(stored)) return stored;
-  return window.matchMedia(DARK_QUERY).matches ? 'dark' : 'light';
+const readStoredTheme = (): Theme | null => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return isTheme(stored) ? stored : null;
+  } catch {
+    return null;
+  }
 };
+
+const writeStoredTheme = (theme: Theme): void => {
+  try {
+    localStorage.setItem(STORAGE_KEY, theme);
+  } catch {
+  }
+};
+
+const initialTheme = (): Theme =>
+  readStoredTheme() ?? (window.matchMedia(DARK_QUERY).matches ? 'dark' : 'light');
 
 export interface UseThemeResult {
   theme: Theme;
@@ -21,7 +34,7 @@ export interface UseThemeResult {
 
 export const useTheme = (): UseThemeResult => {
   const [theme, setTheme] = useState<Theme>(initialTheme);
-  const [hasChoice, setHasChoice] = useState(() => isTheme(localStorage.getItem(STORAGE_KEY)));
+  const [hasChoice, setHasChoice] = useState(() => readStoredTheme() !== null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -29,7 +42,7 @@ export const useTheme = (): UseThemeResult => {
 
   useEffect(() => {
     if (!hasChoice) return;
-    localStorage.setItem(STORAGE_KEY, theme);
+    writeStoredTheme(theme);
   }, [theme, hasChoice]);
 
   // Follow the OS until the user expresses a preference of their own.

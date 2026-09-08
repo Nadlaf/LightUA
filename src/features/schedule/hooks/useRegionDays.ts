@@ -15,8 +15,6 @@ export interface RegionDays {
 
 const byQueueNumber = (a: string, b: string): number => parseFloat(a) - parseFloat(b);
 
-const EMPTY: string[] = [];
-
 /**
  * Everything the form needs about a region, from exactly two requests.
  *
@@ -38,7 +36,7 @@ export const useRegionDays = (channelId: number | null): RegionDays => {
   return {
     todayDate: todayData?.date ?? null,
     availableDates: [...new Set(availableDates)].sort(),
-    queues: todayData ? Object.keys(todayData.schedule).sort(byQueueNumber) : EMPTY,
+    queues: todayData ? Object.keys(todayData.schedule).sort(byQueueNumber) : [],
     isLoading: today.isLoading || tomorrow.isLoading,
     isError: today.isError || tomorrow.isError,
   };

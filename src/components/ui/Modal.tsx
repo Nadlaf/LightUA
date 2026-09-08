@@ -78,7 +78,7 @@ const ModalRoot = ({ isOpen, onClose, children }: ModalProps) => {
             variant="icon"
             onClick={onClose}
             aria-label={t('modal.close')}
-            className="absolute right-[15px] top-[15px] text-muted hover:text-main"
+            className="absolute right-[15px] top-[15px] text-muted transition-colors hover:text-main"
           >
             <X size={20} />
           </Button>
@@ -92,9 +92,9 @@ const ModalRoot = ({ isOpen, onClose, children }: ModalProps) => {
 const ModalTitle = ({ children }: { children: ReactNode }) => {
   const { titleId } = useModalContext();
   return (
-    <h3 id={titleId} className="mb-2.5 text-[1.25rem] font-bold">
+    <h2 id={titleId} className="mb-2.5 text-[1.25rem] font-bold">
       {children}
-    </h3>
+    </h2>
   );
 };
 

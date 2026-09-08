@@ -3,23 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { scheduleQuery } from '@/api/queries';
 import type { ScheduleWhen } from '@/api/schedules';
 
-import { buildTimeline } from '../lib/timeline';
-import type { DaySchedule, ScheduleUnavailableReason } from '../types';
-
-export interface ScheduleSearch {
-  channelId: number;
-  queue: string;
-  date: string;
-}
-
-/**
- * Missing data is an expected outcome, not an exception, so it is modelled as a
- * value. Throwing inside a TanStack `select` is not a documented error path and
- * can surface during render instead of as `query.error`.
- */
-export type ScheduleOutcome =
-  | { status: 'ok'; schedule: DaySchedule }
-  | { status: 'unavailable'; reason: ScheduleUnavailableReason };
+import { toScheduleOutcome } from '../lib/outcome';
+import type { ScheduleOutcome, ScheduleSearch } from '../types';
+import { useRegionDays } from './useRegionDays';
 
 export interface DayScheduleResult {
   outcome: ScheduleOutcome | null;
@@ -37,59 +23,28 @@ const whenFor = (date: string, todayDate: string | null): ScheduleWhen => {
   return { date };
 };
 
-export const useDaySchedule = (
-  search: ScheduleSearch | null,
-  todayDate: string | null,
-  /**
-   * Whether the region's today/tomorrow probes have settled. Until they have,
-   * `todayDate` is still null and whenFor would fall through to the history
-   * endpoint — firing a wasted 404 on every cold load from a shared link, and
-   * briefly reporting "no data" before correcting itself.
-   */
-  isRegionReady: boolean,
-): DayScheduleResult => {
-  const when = search ? whenFor(search.date, todayDate) : 'today';
-  const isEnabled = Boolean(search) && isRegionReady;
+export const useDaySchedule = (search: ScheduleSearch | null): DayScheduleResult => {
+  const channelId = search ? search.channelId : null;
+  const region = useRegionDays(channelId);
+  // A skipped query reports `isLoading === false` — it is `isPending && isFetching`,
+  // and `fetchStatus` is 'idle' — so "nothing to load" and "settled" are the same
+  // value, which is what makes this read correct before a region is chosen.
+  const isRegionReady = !region.isLoading;
 
-  const query = useQuery({
-    ...scheduleQuery(search && isRegionReady ? search.channelId : null, when),
-    select: (data): ScheduleOutcome => {
-      if (!data) {
-        return {
-          status: 'unavailable',
-          reason: { kind: 'noDataForDate', date: search?.date ?? '' },
-        };
-      }
-
-      const offRanges = search ? data.schedule[search.queue] : undefined;
-      if (!offRanges) {
-        return {
-          status: 'unavailable',
-          reason: { kind: 'noDataForQueue', queue: search?.queue ?? '' },
-        };
-      }
-
-      const { timeline, stats } = buildTimeline(offRanges);
-
-      return {
-        status: 'ok',
-        schedule: {
-          channelId: search?.channelId ?? 0,
-          queue: search?.queue ?? '',
-          date: data.date,
-          timeline,
-          stats,
-          emergencyOutages: data.emergency_outages,
-        },
-      };
-    },
-  });
+  // Held back until the region probes settle: `todayDate` is null before then, so
+  // `whenFor` would route to the history endpoint and fire a wasted 404.
+  const activeChannelId = isRegionReady ? channelId : null;
+  const when = search ? whenFor(search.date, region.todayDate) : 'today';
+  const query = useQuery(scheduleQuery(activeChannelId, when));
 
   return {
-    outcome: isEnabled ? (query.data ?? null) : null,
-    // Report loading while the region probes are still in flight, so the panel
-    // shows a spinner rather than an empty or error state.
+    outcome:
+      search && isRegionReady && query.isSuccess ? toScheduleOutcome(query.data, search) : null,
     isLoading: Boolean(search) && (!isRegionReady || query.isLoading),
-    isError: query.isError,
+    // A failed region probe only matters when it left `todayDate` null: `whenFor`
+    // then falls through to the history endpoint, whose 404 would read as "no data
+    // for that date" instead of a load failure. When today resolved and only the
+    // tomorrow probe failed, the schedule is still correct and must still render.
+    isError: query.isError || (region.isError && !region.todayDate),
   };
 };

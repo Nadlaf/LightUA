@@ -1,4 +1,10 @@
-import type { MinuteInterval, ScheduleStats, TimelineInterval } from '../types';
+import type { ScheduleStats, TimelineInterval } from '../types';
+
+/** Internal to timeline construction: an interval in minutes from midnight. */
+interface MinuteInterval {
+  start: number;
+  end: number;
+}
 
 const MINUTES_PER_DAY = 1440;
 const MINUTES_PER_HOUR = 60;

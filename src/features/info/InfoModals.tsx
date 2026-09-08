@@ -15,6 +15,10 @@ const CONTACTS = [
 const ICON_WRAPPER =
   'mb-[15px] flex size-[60px] items-center justify-center rounded-full bg-element';
 const CENTERED = 'flex flex-col items-center text-center';
+// Hand-copied from Button's BASE + VARIANTS.primary (src/components/ui/Button.tsx) so an <a> can
+// look like a primary button. Three deltas are deliberate and must survive any resync: it adds
+// gap-1.5 for the trailing icon, adds no-underline because an anchor underlines and a button does
+// not, and omits the disabled-cursor rule, which an anchor has no use for.
 const LINK_AS_PRIMARY_BUTTON =
   'focus-ring inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-[10px] bg-primary px-6 py-2.5 font-semibold text-white no-underline transition-colors hover:bg-primary-hover';
 
