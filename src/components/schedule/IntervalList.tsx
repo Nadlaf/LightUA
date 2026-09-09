@@ -2,8 +2,7 @@ import { useTranslation } from 'react-i18next';
 
 import Card from '@/components/ui/Card';
 import { formatDisplayDate } from '@/lib/date';
-
-import type { TimelineInterval } from '../types';
+import type { TimelineInterval } from '@/types/schedule';
 
 interface IntervalListProps {
   timeline: TimelineInterval[];

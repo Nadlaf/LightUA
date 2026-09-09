@@ -9,10 +9,10 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import type { SelectOption } from '@/components/ui/Select';
 import Select from '@/components/ui/Select';
+import { useRegionDays } from '@/hooks/useRegionDays';
+import type { ScheduleParams } from '@/hooks/useScheduleParams';
 import { buildWeek } from '@/lib/date';
 
-import { useRegionDays } from '../hooks/useRegionDays';
-import type { ScheduleParams } from '../hooks/useScheduleParams';
 import WeekPicker from './WeekPicker';
 
 interface ScheduleFormProps {

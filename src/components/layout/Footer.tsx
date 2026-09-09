@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import InfoModals from '@/components/info/InfoModals';
 import Button from '@/components/ui/Button';
-import InfoModals from '@/features/info/InfoModals';
 import type { ActiveModal, ModalType } from '@/types/ui';
 
 type NavLabelKey = 'about' | 'contacts' | 'support';

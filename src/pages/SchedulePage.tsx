@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import EmergencyBanner from '@/components/schedule/EmergencyBanner';
+import ScheduleForm from '@/components/schedule/ScheduleForm';
+import ScheduleResult from '@/components/schedule/ScheduleResult';
 import ErrorState from '@/components/ui/ErrorState';
 import Panel from '@/components/ui/Panel';
 import Spinner from '@/components/ui/Spinner';
-
-import EmergencyBanner from './components/EmergencyBanner';
-import ScheduleForm from './components/ScheduleForm';
-import ScheduleResult from './components/ScheduleResult';
-import { useDaySchedule } from './hooks/useDaySchedule';
-import { useScheduleParams } from './hooks/useScheduleParams';
-import type { ChartView, ScheduleUnavailableReason } from './types';
+import { useDaySchedule } from '@/hooks/useDaySchedule';
+import { useScheduleParams } from '@/hooks/useScheduleParams';
+import type { ChartView, ScheduleUnavailableReason } from '@/types/schedule';
 
 const SchedulePage = () => {
   const { t } = useTranslation();

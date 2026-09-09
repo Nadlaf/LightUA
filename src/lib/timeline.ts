@@ -1,4 +1,4 @@
-import type { ScheduleStats, TimelineInterval } from '../types';
+import type { ScheduleStats, TimelineInterval } from '../types/schedule';
 
 /** Internal to timeline construction: an interval in minutes from midnight. */
 interface MinuteInterval {

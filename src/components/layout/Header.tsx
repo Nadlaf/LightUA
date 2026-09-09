@@ -2,8 +2,8 @@ import { Moon, Sun, Zap } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import InfoModals from '@/components/info/InfoModals';
 import Button from '@/components/ui/Button';
-import InfoModals from '@/features/info/InfoModals';
 import type { ActiveModal, ModalType, Theme } from '@/types/ui';
 
 interface HeaderProps {

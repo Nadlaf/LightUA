@@ -1,6 +1,6 @@
 import type { ScheduleResponseDto } from '@/api/models';
+import type { ScheduleOutcome, ScheduleSearch } from '@/types/schedule';
 
-import type { ScheduleOutcome, ScheduleSearch } from '../types';
 import { buildTimeline } from './timeline';
 
 export const toScheduleOutcome = (

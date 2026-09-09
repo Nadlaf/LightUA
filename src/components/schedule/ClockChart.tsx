@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
-import { DEGREES_PER_MINUTE, minutesToHours, timeToMinutes } from '../lib/timeline';
-import type { ScheduleStats, TimelineInterval } from '../types';
+import { DEGREES_PER_MINUTE, minutesToHours, timeToMinutes } from '@/lib/timeline';
+import type { ScheduleStats, TimelineInterval } from '@/types/schedule';
 
 interface ClockChartProps {
   timeline: TimelineInterval[];

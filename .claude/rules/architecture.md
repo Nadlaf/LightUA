@@ -57,7 +57,11 @@ bundler, so `@/…` would type-check and then fail at runtime with `ERR_MODULE_N
 the mapping makes the type checker enforce the runtime's actual resolution rules; test files use
 relative imports with an explicit `.ts` extension.
 
-Use `@/…` for cross-feature imports; relative paths within a feature are fine.
+Use `@/…` for cross-directory imports; relative paths within a directory are fine.
+**One exception:** `lib/timeline.ts` imports its types with a relative `../types/schedule`,
+because `lib/timeline.test.ts` pulls it into `tsconfig.test.json`, which declares no `paths` —
+an `@/…` specifier there fails to resolve. Any module reachable from a test file is bound by the
+same rule.
 
 ## Directory structure
 
@@ -68,19 +72,16 @@ src/
   routes.tsx            createBrowserRouter, basename
   api/                  transport + server DTOs (see below)
   components/
-    ui/                 presentational primitives, no feature knowledge
+    ui/                 presentational primitives, no domain knowledge
     layout/             Header, Footer
-  features/
-    <feature>/
-      <Feature>Page.tsx
-      components/       feature-specific components
-      hooks/            feature data + URL hooks
-      lib/              pure domain logic
-      types.ts          domain models for this feature
-  lib/                  cross-feature helpers (date, theme)
+    schedule/           schedule-specific components
+    info/               InfoModals
+  pages/                route components (SchedulePage)
+  hooks/                data + URL hooks
+  lib/                  pure logic and helpers (date, theme, timeline, outcome)
   i18n/                 resources + init + type augmentation
   styles/index.css      Tailwind entry, palette, theme mapping
-  types/ui.ts           shared UI enums
+  types/                shared UI enums (ui.ts) + domain models (schedule.ts)
 dev/                    dev-only Vite plugins (never in the bundle)
 fixtures/               JSON served by the dev fixture API; not published
 ```
@@ -106,8 +107,8 @@ unfiltered request is what makes `(region, day)` a complete cache key. Adding a 
 without putting it in the key would collide two queues onto one cache entry; putting it in the key
 would forfeit the sharing that makes a search cost zero requests.
 
-Domain conversion (DTO → model) happens in a **pure mapper under the feature's `lib/`**, not in
-`api/` and not inside the hook. `features/schedule/lib/outcome.ts` exports
+Domain conversion (DTO → model) happens in a **pure mapper under `lib/`**, not in
+`api/` and not inside the hook. `lib/outcome.ts` exports
 `toScheduleOutcome(dto, search)`, and `useDaySchedule` calls it during render once the query has
 succeeded. TanStack's `select` is deliberately **not** used: its purpose is subscription narrowing,
 and every consumer here reads the whole result. Because the mapper is an ordinary function it can

@@ -1,7 +1,7 @@
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
-import SchedulePage from '@/features/schedule/SchedulePage';
 import { useTheme } from '@/lib/theme';
+import SchedulePage from '@/pages/SchedulePage';
 
 const App = () => {
   const { theme, toggleTheme } = useTheme();

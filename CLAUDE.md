@@ -37,8 +37,8 @@ which package and why.
 - Vite's `base` and the router's `basename` must stay in sync, and the **trailing slash must be
   kept**. `basename` applies to generated URLs as well as matching; stripping it emits
   `/LightUA?...`, which does not match the configured base and breaks on reload.
-- `src/features/schedule/lib/timeline.ts` has no visual signal for wrong output — a wrong
-  percentage looks plausible. It is now covered by `src/features/schedule/lib/timeline.test.ts`
+- `src/lib/timeline.ts` has no visual signal for wrong output — a wrong
+  percentage looks plausible. It is now covered by `src/lib/timeline.test.ts`
   (`npm test`): run it before and after any change to that file. The suite pins three known-good
   region+queue schedules by total off-minutes, percentage and segment count, so a regression fails
   loudly instead of rendering a believable wrong answer. Treat `24:00`↔`1440`, the

@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import EmptyState from '@/components/ui/EmptyState';
+import type { ChartView, DaySchedule } from '@/types/schedule';
 
-import type { ChartView, DaySchedule } from '../types';
 import ClockChart from './ClockChart';
 import DonutChart from './DonutChart';
 import IntervalList from './IntervalList';

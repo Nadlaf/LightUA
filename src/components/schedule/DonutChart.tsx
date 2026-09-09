@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
-import { minutesToHours } from '../lib/timeline';
-import type { ScheduleStats } from '../types';
+import { minutesToHours } from '@/lib/timeline';
+import type { ScheduleStats } from '@/types/schedule';
 
 interface DonutChartProps {
   stats: ScheduleStats;

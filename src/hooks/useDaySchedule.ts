@@ -2,9 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 
 import { scheduleQuery } from '@/api/queries';
 import type { ScheduleWhen } from '@/api/schedules';
+import { toScheduleOutcome } from '@/lib/outcome';
+import type { ScheduleOutcome, ScheduleSearch } from '@/types/schedule';
 
-import { toScheduleOutcome } from '../lib/outcome';
-import type { ScheduleOutcome, ScheduleSearch } from '../types';
 import { useRegionDays } from './useRegionDays';
 
 export interface DayScheduleResult {

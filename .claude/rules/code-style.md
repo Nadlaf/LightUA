@@ -145,7 +145,8 @@ ships real ESLint 10 support; do not force it with `overrides`.
 
 ## Components
 
-- Presentational primitives live in `components/ui/` and must not import from `features/`.
+- Presentational primitives live in `components/ui/` and must not import from
+  `components/schedule/`, `components/info/`, `hooks/` or `pages/`.
 - **Explicit variant unions, not boolean props.** `<Button variant="primary">`, not `isPrimary`.
   `ghost` and `icon` are intentionally minimal so callers supply colour and size via `className`.
 - Compound components are assembled with `Object.assign` (`Modal.Title`, `Card.Header`), which
